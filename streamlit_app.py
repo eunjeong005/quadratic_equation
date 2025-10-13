@@ -3,12 +3,19 @@ import streamlit.components.v1 as components
 import os
 
 # 페이지 설정
+import streamlit as st
+import os
+
+# 페이지 설정 - 더 넓은 레이아웃
 st.set_page_config(
-    page_title="이차함수 학습 프로그램",
+    page_title="이차함수 완전제곱식 & 그래프 변환 학습",
     page_icon="🎯",
-    layout="wide",
+    layout="wide",  # 와이드 레이아웃으로 변경
     initial_sidebar_state="collapsed"
 )
+
+# 강제 업데이트 트리거 (v1.1)
+st.markdown("<!-- Force Update v1.1 -->", unsafe_allow_html=True)
 
 # 사이드바에 정보 추가
 st.sidebar.title("📚 이차함수 학습 도우미")
