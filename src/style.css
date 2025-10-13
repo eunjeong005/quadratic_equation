@@ -8,16 +8,18 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    height: 100vh;
-    overflow: hidden;
+    min-height: 85vh;
+    margin: 0;
+    padding: 10px;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
 .container {
-    width: 95vw;
-    height: 95vh;
+    width: 95%;
+    max-width: 1200px;
+    height: 85vh;
     background: white;
     border-radius: 20px;
     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
@@ -28,7 +30,7 @@ body {
 
 /* 화면 전환 */
 .screen {
-    padding: 20px;
+    padding: 15px;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -213,9 +215,9 @@ body {
     background: #fff;
     border: 2px solid #e9ecef;
     border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 15px;
-    max-height: 60vh;
+    padding: 15px;
+    margin-bottom: 10px;
+    max-height: 50vh;
     overflow-y: auto;
 }
 
@@ -384,7 +386,7 @@ body {
     grid-template-columns: 1fr 280px;
     gap: 20px;
     width: 100%;
-    height: 70vh;
+    height: 60vh;
     margin-bottom: 10px;
 }
 
@@ -394,7 +396,7 @@ body {
     background: white;
     width: 100%;
     height: 100%;
-    max-height: 70vh;
+    max-height: 60vh;
 }
 
 .graph-controls {
@@ -660,5 +662,48 @@ body {
     
     .block-group:first-child > div {
         justify-content: center;
+    }
+}
+
+/* Streamlit 환경 특별 조정 */
+@media screen and (max-height: 800px) {
+    .container {
+        height: 80vh;
+    }
+    
+    .graph-container {
+        height: 55vh;
+    }
+    
+    #graph-canvas {
+        max-height: 55vh;
+    }
+    
+    .completion-area {
+        max-height: 45vh;
+    }
+}
+
+/* 매우 작은 화면 */
+@media screen and (max-height: 600px) {
+    .container {
+        height: 75vh;
+    }
+    
+    .screen {
+        padding: 10px;
+    }
+    
+    .graph-container {
+        height: 50vh;
+    }
+    
+    #graph-canvas {
+        max-height: 50vh;
+    }
+    
+    .completion-area {
+        max-height: 40vh;
+        padding: 10px;
     }
 }
