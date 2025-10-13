@@ -24,6 +24,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initializeApp() {
     try {
+        // 캔버스 크기 설정
+        resizeCanvas();
+        
+        // 윈도우 리사이즈 이벤트 리스너
+        window.addEventListener('resize', resizeCanvas);
+        
         // 이벤트 리스너 등록
         document.getElementById('start-level1-btn')?.addEventListener('click', () => startEquationChallenge(1));
         document.getElementById('start-level2-btn')?.addEventListener('click', () => startEquationChallenge(2));
@@ -87,6 +93,29 @@ function initializeApp() {
         console.log('이차함수 학습 프로그램이 성공적으로 초기화되었습니다.');
     } catch (error) {
         console.error('프로그램 초기화 중 오류 발생:', error);
+    }
+}
+
+// 캔버스 크기 동적 조정
+function resizeCanvas() {
+    const canvas = document.getElementById('graph-canvas');
+    if (canvas) {
+        const container = canvas.parentElement;
+        const containerRect = container.getBoundingClientRect();
+        
+        // 컨테이너 크기의 90%로 설정하되, 최대/최소 크기 제한
+        const maxSize = Math.min(containerRect.width * 0.9, containerRect.height * 0.9);
+        const size = Math.max(300, Math.min(600, maxSize));
+        
+        canvas.width = size;
+        canvas.height = size;
+        
+        // 그래프가 그려져 있다면 다시 그리기
+        if (currentEquation.a !== undefined) {
+            const ctx = canvas.getContext('2d');
+            drawCoordinateSystem(ctx, canvas, graphTransformations.h, graphTransformations.k);
+            drawParabola(ctx, canvas, graphTransformations.h, graphTransformations.k, currentEquation.a || 1);
+        }
     }
 }
 
