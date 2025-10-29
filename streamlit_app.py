@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import os
+import re
 
 # 페이지 설정
 import streamlit as st
@@ -53,10 +54,29 @@ try:
     with open('src/script.js', 'r', encoding='utf-8') as f:
         js_content = f.read()
     
-    # HTML에 CSS와 JavaScript 인라인으로 삽입
-    html_with_inline = html_content.replace(
+    # CSS에서 의도치 않은 주변 여백 규칙(margin/padding)을 제거하여 원래 크기로 복원
+    # body는 0으로 초기화, container/wrapper 등 클래스의 margin/padding 규칙은 제거
+    css_sanitized = re.sub(
+        r'body\s*\{[^}]*?\}',
+        lambda m: re.sub(r'(margin|padding)\s*:[^;]+;?', '', m.group(0), flags=re.I) or 'body{margin:0;padding:0;}',
+        css_content,
+        flags=re.I|re.S
+    )
+    # .container, .wrapper, #app 등 주요 셀렉터의 margin/padding 제거
+    css_sanitized = re.sub(
+        r'(\.(?:container|wrapper|app)|#(?:container|wrapper|app))[^{]*\{[^}]*\}',
+        lambda m: re.sub(r'(margin|padding)\s*:[^;]+;?', '', m.group(0), flags=re.I),
+        css_sanitized,
+        flags=re.I|re.S
+    )
+
+    # HTML 인라인 style에 있는 margin/padding 속성도 제거
+    html_no_inline_spacing = re.sub(r'(margin|padding)\s*:\s*[^;"]+;?', '', html_content, flags=re.I)
+
+    # 최종적으로 CSS/JS를 인라인으로 삽입
+    html_with_inline = html_no_inline_spacing.replace(
         '<link rel="stylesheet" href="src/style.css">',
-        f'<style>{css_content}</style>'
+        f'<style>{css_sanitized}</style>'
     ).replace(
         '<script src="src/script.js"></script>',
         f'<script>{js_content}</script>'
