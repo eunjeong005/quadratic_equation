@@ -111,13 +111,19 @@ try:
     # iframe 내부에서 스크롤을 없애고 전체 내용을 보여주기 위한 추가 스타일
     injection_style = """
     <style>
-      html, body { overflow: visible !important; height: auto !important; }
+      /* 내부 스크롤 제거, 내부 컨테이너 고정 높이/오버플로우 강제 해제 */
+      html, body, #app, .container, .root, .content {
+          overflow: visible !important;
+          height: auto !important;
+          max-height: none !important;
+      }
+      /* 내부 컨텐츠를 더 작게 축소하여 한 화면에 더 많은 내용 표시 */
+      body { transform-origin: 0 0; transform: scale(0.75); -webkit-transform: scale(0.75); }
+      /* 내부에서 고정된 width/height가 있으면 무시 */
+      * { max-width: none !important; max-height: none !important; }
+      /* 스크롤바 숨김 (선택) */
       ::-webkit-scrollbar { display: none; }
       body { -ms-overflow-style: none; scrollbar-width: none; }
-      /* 내부 컨텐츠는 거의 기본 크기 유지(너무 축소하지 않음) */
-      body { transform-origin: 0 0; transform: scale(0.95); }
-      /* 내부 요소가 큰 경우 전체가 보이도록 최대 너비 제한 완화 */
-      .container, #app { max-width: none !important; width: auto !important; }
     </style>
     """
     # 위 스타일을 <head> 직후나 <body> 최상단에 삽입
@@ -126,27 +132,29 @@ try:
     else:
         html_with_inline = injection_style + html_with_inline
 
-    # 부모 페이지(스트림릿)에서 iframe을 적당한 크기로 보이게 하는 전역 CSS
+    # 부모 페이지(스트림릿)에서 iframe을 충분히 크게 보이게 하는 전역 CSS
     st.markdown("""
     <style>
-    /* Streamlit이 생성한 iframe에 대해 적절한 최소 높이/너비 확보 */
+    /* Streamlit이 생성한 iframe에 대해 충분한 높이/너비 확보 */
     iframe[srcdoc], iframe {
-        min-height: 1000px !important;  /* 변경: 1000px로 축소 */
-        height: auto !important;
-        width: 100% !important;
+        min-height: 1600px !important;   /* 더 크게 설정 */
+        height: 1600px !important;       /* 고정 높이로 설정 */
+        width: 1600px !important;        /* 고정 너비로 설정(필요시 100%로 변경) */
+        max-width: 100% !important;
         border: none !important;
         overflow: visible !important;
     }
-    .main > div[role="main"] { overflow: visible !important; }
+    /* 부모 페이지 글꼴·여백도 약간 더 컴팩트하게 유지 */
+    .block-container { max-width: 1600px !important; padding: 0.3rem !important; }
     </style>
     """, unsafe_allow_html=True)
 
-    # Streamlit에서 HTML 컴포넌트 실행 - height를 1000으로 설정
+    # Streamlit에서 HTML 컴포넌트 실행 - height/width를 충분히 크게 잡음
     components.html(
         html_with_inline,
-        height=1000,    # 변경: 한 화면에 보일 높이 약 1000px
-        width=1200,     # 변경: 적당한 너비
-        scrolling=False  # 부모 페이지에서 스크롤 관리
+        height=1600,    # 변경: 1600px로 충분히 크게
+        width=1600,     # 변경: 1600px 고정 너비 (또는 width=0로 두면 100% 사용)
+        scrolling=False  # 내부 스크롤 끄기 -> 부모 iframe에 충분한 높이를 줌
     )
     
 except FileNotFoundError as e:
