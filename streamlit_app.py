@@ -118,13 +118,47 @@ try:
         '<script src="src/script.js"></script>',
         f'<script>{js_content}</script>'
     )
-    
-    # Streamlit에서 HTML 컴포넌트 실행 - 높이/너비를 키워 더 많은 내용 표시
+
+    # iframe 내부에서 스크롤을 없애고 전체 내용을 보여주기 위한 추가 스타일
+    # (body overflow visible, 스크롤바 숨김, 필요하면 내부 요소의 스케일도 조정)
+    injection_style = """
+    <style>
+      html, body { overflow: visible !important; height: auto !important; }
+      /* 내부 스크롤바 숨기기 (웹킷 브라우저용) */
+      ::-webkit-scrollbar { display: none; }
+      body { -ms-overflow-style: none; scrollbar-width: none; }
+      /* 내부 컨텐츠가 너무 크면 글자/이미지 약간 축소 */
+      body { transform-origin: 0 0; transform: scale(0.95); }
+    </style>
+    """
+    # 위 스타일을 <head> 직후나 <body> 최상단에 삽입
+    if '<head>' in html_with_inline:
+        html_with_inline = html_with_inline.replace('<head>', '<head>' + injection_style)
+    else:
+        html_with_inline = injection_style + html_with_inline
+
+    # 부모 페이지(스트림릿)에서 iframe을 충분히 크게 보이게 하는 전역 CSS
+    st.markdown("""
+    <style>
+    /* Streamlit이 생성한 iframe(내부 srcdoc)에 대해 최소 높이/너비 확보 */
+    iframe[srcdoc] {
+        min-height: 1800px !important;  /* 필요에 따라 늘리세요 */
+        height: auto !important;
+        width: 100% !important;
+        border: none !important;
+        overflow: visible !important;
+    }
+    /* 부모 페이지가 내부 컨텐츠 전체를 수직으로 스크롤하도록 함 */
+    .main > div[role="main"] { overflow: visible !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Streamlit에서 HTML 컴포넌트 실행 - 높이를 크게 잡고 내부 스크롤을 끔
     components.html(
         html_with_inline,
-        height=1200,   # 화면에 더 많은 세로 내용 보이게 증가
-        width=1800,    # 넓게 설정해서 가로로 더 많은 내용 표시
-        scrolling=True
+        height=2000,    # 더 크게 설정: 내부 내용이 많다면 2500~4000 등으로 조정
+        width=1800,
+        scrolling=False  # 내부 iframe 스크롤 끄기 -> 부모 페이지 스크롤 사용
     )
     
 except FileNotFoundError as e:
