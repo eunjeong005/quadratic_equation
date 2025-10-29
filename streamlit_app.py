@@ -38,24 +38,60 @@ st.title("🎯 이차함수 완전제곱식 & 그래프 변환 학습")
 # 페이지 폭을 넓히고 여백을 줄이는 전역 CSS
 st.markdown("""
 <style>
-/* 컨테이너 최대 너비를 늘리고 패딩을 줄임 */
+/* 전체 최대 너비를 거의 화면 전체로 확장 */
 .block-container {
-    padding-top: 0.6rem;
-    padding-right: 1rem;
-    padding-left: 1rem;
-    padding-bottom: 0.6rem;
-    max-width: 1400px; /* 필요하면 100% 또는 더 큰 값으로 조정 */
+    padding-top: 0.25rem;
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+    padding-bottom: 0.25rem;
+    max-width: 2200px; /* 화면을 최대한 활용 */
 }
 
-/* 헤더 영역 여백 완화 */
-header[data-testid="stHeader"] {
-    padding: 8px 24px;
+/* 기본 폰트/줄간격을 작게 해서 한 화면에 더 많은 텍스트가 보이게 함 */
+html, body, .stApp, .block-container {
+    font-size: 13px !important;
+    line-height: 1.1 !important;
 }
 
-/* 컴포넌트 내 여백도 줄이기 (가능한 범위에서) */
-.streamlit-expanderHeader, .stMarkdown, .stButton {
+/* Streamlit 컴포넌트의 여백 최소화 */
+.element-container, .stMarkdown, .stButton, .stTextInput, .stSelectbox {
+    margin: 0 !important;
+    padding: 0.15rem !important;
+}
+
+/* 헤더/사이드바 여백 축소 */
+header[data-testid="stHeader"], aside[aria-label="Sidebar"] {
+    padding: 6px 12px !important;
+}
+
+/* 버튼/입력 컨트롤을 작게 보이게 함 */
+.stButton>button, .stTextInput>div, .stSelectbox>div {
+    font-size: 12px !important;
+    padding: 4px 6px !important;
+}
+
+/* 플롯/이미지 등 미디어 축소 */
+img, svg, canvas {
+    max-width: 100% !important;
+    height: auto !important;
+    transform-origin: 0 0;
+    transform: scale(0.86); /* 필요시 더 작게: 0.8 등 */
+}
+
+/* 내부 html 임베드 요소 스케일(임베드된 페이지의 글자/그림 축소) */
+iframe, .streamlit-expander {
+    transform-origin: 0 0;
+}
+
+/* 줄 간격과 패딩을 더 줄이는 추가 선택자 */
+h1, h2, h3, p, li, label {
     margin: 0;
     padding: 0;
+}
+
+/* 모바일/작은 화면 보정: 너무 작아지면 최소 폰트로 제한 */
+@media (max-width: 900px) {
+    html, body, .stApp, .block-container { font-size: 12px !important; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -83,11 +119,11 @@ try:
         f'<script>{js_content}</script>'
     )
     
-    # Streamlit에서 HTML 컴포넌트 실행 - 높이를 줄여서 컴팩트하게
+    # Streamlit에서 HTML 컴포넌트 실행 - 높이/너비를 키워 더 많은 내용 표시
     components.html(
         html_with_inline,
-        height=900,   # 변경: 표시 높이를 크게 함 (원하면 더 늘리세요)
-        width=1400,   # 변경: 컴포넌트 너비 지정 (페이지 폭에 맞춤)
+        height=1200,   # 화면에 더 많은 세로 내용 보이게 증가
+        width=1800,    # 넓게 설정해서 가로로 더 많은 내용 표시
         scrolling=True
     )
     
