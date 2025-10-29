@@ -7,7 +7,7 @@ import re
 st.set_page_config(
     page_title="이차함수 완전제곱식 & 그래프 변환 학습",
     page_icon="🎯",
-    layout="centered",  # 센터드 레이아웃으로 변경
+    layout="wide",  # 변경: centered -> wide
     initial_sidebar_state="collapsed"
 )
 
@@ -35,6 +35,31 @@ st.sidebar.markdown("""
 # 컴팩트한 메인 타이틀
 st.title("🎯 이차함수 완전제곱식 & 그래프 변환 학습")
 
+# 페이지 폭을 넓히고 여백을 줄이는 전역 CSS
+st.markdown("""
+<style>
+/* 컨테이너 최대 너비를 늘리고 패딩을 줄임 */
+.block-container {
+    padding-top: 0.6rem;
+    padding-right: 1rem;
+    padding-left: 1rem;
+    padding-bottom: 0.6rem;
+    max-width: 1400px; /* 필요하면 100% 또는 더 큰 값으로 조정 */
+}
+
+/* 헤더 영역 여백 완화 */
+header[data-testid="stHeader"] {
+    padding: 8px 24px;
+}
+
+/* 컴포넌트 내 여백도 줄이기 (가능한 범위에서) */
+.streamlit-expanderHeader, .stMarkdown, .stButton {
+    margin: 0;
+    padding: 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # HTML, CSS, JavaScript 파일 읽기
 try:
     # HTML 파일 읽기
@@ -61,7 +86,8 @@ try:
     # Streamlit에서 HTML 컴포넌트 실행 - 높이를 줄여서 컴팩트하게
     components.html(
         html_with_inline,
-        height=500,  # 높이를 줄임
+        height=900,   # 변경: 표시 높이를 크게 함 (원하면 더 늘리세요)
+        width=1400,   # 변경: 컴포넌트 너비 지정 (페이지 폭에 맞춤)
         scrolling=True
     )
     
