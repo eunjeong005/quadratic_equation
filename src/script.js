@@ -96,6 +96,13 @@ function initializeApp() {
     }
 }
 
+// MathJax 재렌더링 함수
+function rerenderMath(element) {
+    if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([element]).catch((err) => console.log(err.message));
+    }
+}
+
 // 캔버스 크기 동적 조정
 function resizeCanvas() {
     const canvas = document.getElementById('graph-canvas');
@@ -169,14 +176,14 @@ function generateRandomEquation() {
     displayEquation();
 }
 
-// 방정식을 화면에 표시
+// 방정식을 화면에 표시 (LaTeX 형식)
 function displayEquation() {
     const { a, b, c } = currentEquation;
     let equationText = '';
     
     if (currentLevel === 1) {
         // Level 1: x² + bx + c 형태
-        equationText = 'x²';
+        equationText = '$x^2';
         if (b > 0) {
             equationText += ` + ${b}x`;
         } else if (b < 0) {
@@ -188,14 +195,16 @@ function displayEquation() {
         } else if (c < 0) {
             equationText += ` - ${Math.abs(c)}`;
         }
+        equationText += '$';
     } else {
         // Level 2: ax² + bx + c 형태
+        equationText = '$';
         if (a === 1) {
-            equationText = 'x²';
+            equationText += 'x^2';
         } else if (a === -1) {
-            equationText = '-x²';
+            equationText += '-x^2';
         } else {
-            equationText = `${a}x²`;
+            equationText += `${a}x^2`;
         }
         
         if (b > 0) {
@@ -209,23 +218,26 @@ function displayEquation() {
         } else if (c < 0) {
             equationText += ` - ${Math.abs(c)}`;
         }
+        equationText += '$';
     }
     
-    document.getElementById('original-equation').textContent = equationText;
+    const equationElement = document.getElementById('original-equation');
+    equationElement.innerHTML = equationText;
+    rerenderMath(equationElement);
 }
 
-// 현재 방정식을 표준형 문자열로 변환
+// 현재 방정식을 표준형 문자열로 변환 (LaTeX 형식)
 function convertToStandardForm(equation) {
     const { a, b, c } = equation;
-    let equationText = '';
+    let equationText = '$';
     
     // a 계수 처리
     if (a === 1) {
-        equationText = 'x²';
+        equationText += 'x^2';
     } else if (a === -1) {
-        equationText = '-x²';
+        equationText += '-x^2';
     } else {
-        equationText = `${a}x²`;
+        equationText += `${a}x^2`;
     }
     
     // b 계수 처리
@@ -242,12 +254,17 @@ function convertToStandardForm(equation) {
         equationText += ` - ${Math.abs(c)}`;
     }
     
+    equationText += '$';
     return equationText;
 }
 
 // 3. 블럭 추가
 function addBlock(value, type) {
-    userInput.push({ value, type });
+    if (type === 'variable' && value === 'x') {
+        userInput.push({ value: '$x$', type, rawValue: 'x' });
+    } else {
+        userInput.push({ value, type });
+    }
     updateCompletionDisplay();
 }
 
@@ -271,7 +288,7 @@ function updateCompletionDisplay() {
     userInput.forEach((item, index) => {
         const span = document.createElement('span');
         span.className = 'equation-part';
-        span.textContent = item.value;
+        span.innerHTML = item.value;
         span.onclick = () => removeBlock(index);
         display.appendChild(span);
     });
@@ -281,6 +298,9 @@ function updateCompletionDisplay() {
     document.querySelectorAll('.equation-part').forEach(part => {
         part.classList.remove('error');
     });
+    
+    // MathJax 재렌더링
+    rerenderMath(display);
 }
 
 // 블럭 제거
@@ -312,33 +332,33 @@ function checkAnswer() {
         } else if (wrongAttempts >= 5) {
             // 5번 이상 틀리면 정답 공개
             const { a, h, k } = correctAnswer;
-            let answerText = '';
+            let answerText = '$';
             
             if (currentLevel === 2) {
                 // Level 2: a(x±h)²±k 형태
                 if (a === 1) {
-                    answerText = '';
+                    answerText += '';
                 } else if (a === -1) {
-                    answerText = '-';
+                    answerText += '-';
                 } else {
-                    answerText = `${a}`;
+                    answerText += `${a}`;
                 }
                 
                 if (h === 0) {
-                    answerText += 'x²';
+                    answerText += 'x^2';
                 } else if (h > 0) {
-                    answerText += `(x - ${h})²`;
+                    answerText += `(x - ${h})^2`;
                 } else {
-                    answerText += `(x + ${Math.abs(h)})²`;
+                    answerText += `(x + ${Math.abs(h)})^2`;
                 }
             } else {
                 // Level 1: (x±h)²±k 형태
                 if (h === 0) {
-                    answerText = 'x²';
+                    answerText += 'x^2';
                 } else if (h > 0) {
-                    answerText = `(x - ${h})²`;
+                    answerText += `(x - ${h})^2`;
                 } else {
-                    answerText = `(x + ${Math.abs(h)})²`;
+                    answerText += `(x + ${Math.abs(h)})^2`;
                 }
             }
             
@@ -347,8 +367,14 @@ function checkAnswer() {
             } else if (k < 0) {
                 answerText += ` - ${Math.abs(k)}`;
             }
+            answerText += '$';
             
-            showFeedback(`정답을 공개합니다: ${answerText} 😅 다시 입력해서 다음 단계로 진행하세요!`, 'warning');
+            const feedbackElement = document.getElementById('feedback');
+            feedbackElement.innerHTML = `정답을 공개합니다: ${answerText} 😅 다시 입력해서 다음 단계로 진행하세요!`;
+            feedbackElement.className = 'feedback warning';
+            feedbackElement.classList.remove('hidden');
+            rerenderMath(feedbackElement);
+            
             // 정답을 자동으로 채워주기
             setTimeout(() => {
                 showCorrectAnswer(correctAnswer);
@@ -360,9 +386,14 @@ function checkAnswer() {
     }
 }
 
-// 사용자 입력을 파싱
+// 사용자 입력을 파싱 (LaTeX 고려)
 function parseUserInput() {
-    const inputStr = userInput.map(item => item.value).join('');
+    const inputStr = userInput.map(item => {
+        if (item.rawValue) {
+            return item.rawValue; // x의 경우 rawValue 사용
+        }
+        return item.value.replace(/\$|\^/g, ''); // LaTeX 기호 제거
+    }).join('');
     console.log('사용자 입력:', inputStr);
     
     const cleanInput = inputStr.replace(/\s/g, '');
@@ -667,9 +698,10 @@ function highlightErrors(userAnswer, correctAnswer) {
 // 피드백 표시
 function showFeedback(message, type) {
     const feedback = document.getElementById('feedback');
-    feedback.textContent = message;
+    feedback.innerHTML = message;
     feedback.className = `feedback ${type}`;
     feedback.classList.remove('hidden');
+    rerenderMath(feedback);
 }
 
 function hideFeedback() {
@@ -687,7 +719,7 @@ function showSuccessMessage(message) {
     // 새로운 성공 메시지 생성
     const toast = document.createElement('div');
     toast.className = 'success-toast';
-    toast.textContent = message;
+    toast.innerHTML = message;
     toast.style.cssText = `
         position: fixed;
         top: 20px;
@@ -705,6 +737,7 @@ function showSuccessMessage(message) {
     `;
     
     document.body.appendChild(toast);
+    rerenderMath(toast);
     
     // 3초 후 자동 제거
     setTimeout(() => {
@@ -748,7 +781,7 @@ function updateSuccessScreen() {
     }
 }
 
-// 정답을 자동으로 채워주는 함수
+// 정답을 자동으로 채워주는 함수 (LaTeX 형식)
 function showCorrectAnswer(correctAnswer) {
     clearUserInput();
     const { a, h, k } = correctAnswer;
@@ -764,7 +797,7 @@ function showCorrectAnswer(correctAnswer) {
     
     // (x±h)² 부분
     userInput.push({ value: '(', type: 'parenthesis' });
-    userInput.push({ value: 'x', type: 'variable' });
+    userInput.push({ value: '$x$', type: 'variable', rawValue: 'x' });
     
     if (h === 0) {
         // h가 0이면 아무것도 추가하지 않음
@@ -823,20 +856,22 @@ function startGraphChallenge() {
         
         // 완전제곱식 형태로 목표 표시
         if (h === 0) {
-            targetEquation = 'x²';
+            targetEquation = '$x^2$';
         } else if (h > 0) {
-            targetEquation = `(x - ${h})²`;
+            targetEquation = `$(x - ${h})^2$`;
         } else {
-            targetEquation = `(x + ${Math.abs(h)})²`;
+            targetEquation = `$(x + ${Math.abs(h)})^2$`;
         }
         
         if (k > 0) {
-            targetEquation += ` + ${k}`;
+            targetEquation = targetEquation.slice(0, -1) + ` + ${k}$`;
         } else if (k < 0) {
-            targetEquation += ` - ${Math.abs(k)}`;
+            targetEquation = targetEquation.slice(0, -1) + ` - ${Math.abs(k)}$`;
         }
         
-        document.getElementById('movement-step-title').textContent = `🎯 x²을 평행이동시켜서 ${targetEquation}을 완성해보세요!`;
+        const titleElement = document.getElementById('movement-step-title');
+        titleElement.innerHTML = `🎯 $x^2$을 평행이동시켜서 ${targetEquation}을 완성해보세요!`;
+        rerenderMath(titleElement);
         
         // Level 1은 항상 x² (a=1)에서 시작
         const canvas = document.getElementById('graph-canvas');
@@ -845,7 +880,7 @@ function startGraphChallenge() {
         drawParabola(ctx, canvas, 0, 0, 1);
         
         displayTargetEquation();
-        updateGraphFeedback('x² 그래프를 평행이동시켜서 목표 위치로 이동시켜보세요!', 'info');
+        updateGraphFeedback('$x^2$ 그래프를 평행이동시켜서 목표 위치로 이동시켜보세요!', 'info');
     } else {
         // Level 2: 개형 선택 단계부터 시작
         const shapeStep = document.getElementById('shape-selection-step');
@@ -861,16 +896,18 @@ function startGraphChallenge() {
         
         // 원래 이차식을 사용하여 설명과 표시
         const originalFormat = convertToStandardForm(currentEquation);
-        document.getElementById('shape-description').textContent = 
-            `🤔 ${originalFormat}과 같은 개형을 가진 그래프를 선택하세요:`;
-        document.getElementById('original-equation-display').textContent = originalFormat;
+        const descElement = document.getElementById('shape-description');
+        descElement.innerHTML = `🤔 ${originalFormat}과 같은 개형을 가진 그래프를 선택하세요:`;
+        rerenderMath(descElement);
+        
+        const displayElement = document.getElementById('original-equation-display');
+        displayElement.innerHTML = originalFormat;
+        rerenderMath(displayElement);
         
         // multiplier-step도 미리 현재 이차식으로 설정
         setupMultiplierStep();
     }
 }
-
-// 개형 선택 설정
 
 // 개형 선택
 function selectShape(shape) {
@@ -915,28 +952,31 @@ function selectShape(shape) {
     }
 }
 
-// 배수 입력 단계 설정
+// 배수 입력 단계 설정 (LaTeX 형식)
 function setupMultiplierStep() {
     // 원래 문제의 이차식을 기준으로 배수 질문
     const { a, b, c } = currentEquation;
     const targetCoeff = Math.abs(a);
-    // baseShape는 선택된 개형에 따라 결정
-    const baseShape = a > 0 ? 'y = x²' : 'y = -x²';
     
     // 개형에 따라 질문 제목 변경
     const questionTitle = a > 0 ? 
-        '🔢 x²을 몇 배 해야 같은 개형이 나오겠나요?' : 
-        '🔢 -x²을 몇 배 해야 같은 개형이 나오겠나요?';
-    document.getElementById('multiplier-question-title').textContent = questionTitle;
+        '🔢 $x^2$을 몇 배 해야 같은 개형이 나오겠나요?' : 
+        '🔢 $-x^2$을 몇 배 해야 같은 개형이 나오겠나요?';
+    const titleElement = document.getElementById('multiplier-question-title');
+    titleElement.innerHTML = questionTitle;
+    rerenderMath(titleElement);
+    
+    // baseShape는 선택된 개형에 따라 결정
+    const baseShape = a > 0 ? '$y = x^2$' : '$y = -x^2$';
     
     // 원래 이차식 표시
-    let originalEquation = '';
+    let originalEquation = '$';
     if (a === 1) {
-        originalEquation = 'x²';
+        originalEquation += 'x^2';
     } else if (a === -1) {
-        originalEquation = '-x²';
+        originalEquation += '-x^2';
     } else {
-        originalEquation = `${a}x²`;
+        originalEquation += `${a}x^2`;
     }
     
     if (b > 0) {
@@ -950,8 +990,9 @@ function setupMultiplierStep() {
     } else if (c < 0) {
         originalEquation += ` - ${Math.abs(c)}`;
     }
+    originalEquation += '$';
     
-    const targetShape = `${originalEquation}`;
+    const targetShape = originalEquation;
     
     console.log('배수 설정:', {
         'currentEquation': currentEquation,
@@ -960,8 +1001,13 @@ function setupMultiplierStep() {
         'targetShape': targetShape
     });
     
-    document.getElementById('base-shape-display').textContent = baseShape;
-    document.getElementById('target-shape-display').textContent = targetShape;
+    const baseElement = document.getElementById('base-shape-display');
+    baseElement.innerHTML = baseShape;
+    rerenderMath(baseElement);
+    
+    const targetElement = document.getElementById('target-shape-display');
+    targetElement.innerHTML = targetShape;
+    rerenderMath(targetElement);
 }
 
 // 배수 확인
@@ -998,23 +1044,23 @@ function checkMultiplier() {
             
             // Level 2도 Level 1처럼 완전제곱식 형태로 제목 표시
             const { a, h, k } = currentEquation;
-            let targetEquation = '';
+            let targetEquation = '$';
             
             // 완전제곱식 형태로 목표 표시 (Level 2는 계수 a 포함)
             if (a === 1) {
-                targetEquation = '';
+                targetEquation += '';
             } else if (a === -1) {
-                targetEquation = '-';
+                targetEquation += '-';
             } else {
-                targetEquation = `${a}`;
+                targetEquation += `${a}`;
             }
             
             if (h === 0) {
-                targetEquation += '(x)²';
+                targetEquation += '(x)^2';
             } else if (h > 0) {
-                targetEquation += `(x - ${h})²`;
+                targetEquation += `(x - ${h})^2`;
             } else {
-                targetEquation += `(x + ${Math.abs(h)})²`;
+                targetEquation += `(x + ${Math.abs(h)})^2`;
             }
             
             if (k > 0) {
@@ -1022,9 +1068,11 @@ function checkMultiplier() {
             } else if (k < 0) {
                 targetEquation += ` - ${Math.abs(k)}`;
             }
+            targetEquation += '$';
             
             const baseGraphText = a > 0 ? `${Math.abs(a)}x²` : `-${Math.abs(a)}x²`;
-            document.getElementById('movement-step-title').textContent = `🎯 ${baseGraphText}을 평행이동시켜서 ${targetEquation}을 완성해보세요!`;
+            document.getElementById('movement-step-title').innerHTML = `🎯 ${baseGraphText}을 평행이동시켜서 ${targetEquation}을 완성해보세요!`;
+            rerenderMath(document.getElementById('movement-step-title'));
             
             initializeGraph();
             displayTargetEquation();
@@ -1375,7 +1423,8 @@ function displayTargetEquation() {
     // y = 추가
     equationText = 'y = ' + equationText;
     
-    document.getElementById('target-equation-display').textContent = equationText;
+    document.getElementById('target-equation-display').innerHTML = equationText;
+    rerenderMath(document.getElementById('target-equation-display'));
 }
 
 // 그래프 이동 완료 확인
@@ -1458,7 +1507,7 @@ function updateGraphFeedback(message, type) {
         graphContainer.parentNode.insertBefore(feedbackElement, graphContainer.nextSibling);
     }
     
-    feedbackElement.textContent = message;
+    feedbackElement.innerHTML = message;
     feedbackElement.className = `feedback ${type}`;
     feedbackElement.classList.remove('hidden');
 }
