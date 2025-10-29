@@ -38,33 +38,33 @@ st.title("🎯 이차함수 완전제곱식 & 그래프 변환 학습")
 # 페이지 폭을 넓히고 여백을 줄이는 전역 CSS
 st.markdown("""
 <style>
-/* 전체 최대 너비를 화면 전체로 더 확장 */
+/* 전체 최대 너비를 적당히 확장 (너무 크지 않게) */
 .block-container {
-    padding-top: 0.15rem;
-    padding-right: 0.25rem;
-    padding-left: 0.25rem;
-    padding-bottom: 0.15rem;
-    max-width: 3200px; /* 크게 확장 */
+    padding-top: 0.25rem;
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+    padding-bottom: 0.25rem;
+    max-width: 1400px; /* 과도한 폭 제거 */
 }
 
-/* 폰트/줄간격을 더 작게 해서 한 화면에 더 많은 텍스트 표시 */
+/* 폰트/줄간격을 약간 작게 해서 한 화면에 더 많은 텍스트 표시 */
 html, body, .stApp, .block-container {
-    font-size: 12px !important;
-    line-height: 1.0 !important;
+    font-size: 13px !important;
+    line-height: 1.05 !important;
 }
 
-/* 컴포넌트 여백 최소화 */
+/* 컴포넌트 여백 최소화 (과도하게 줄이지 않음) */
 .element-container, .stMarkdown, .stButton, .stTextInput, .stSelectbox {
     margin: 0 !important;
-    padding: 0.12rem !important;
+    padding: 0.2rem !important;
 }
 
-/* 플롯/이미지 등 미디어 축소 */
+/* 플롯/이미지 축소: 너무 작지 않게 적당히 */
 img, svg, canvas {
     max-width: 100% !important;
     height: auto !important;
     transform-origin: 0 0;
-    transform: scale(0.80); /* 더 작게 축소해서 한 화면에 더 많이 보이게 함 */
+    transform: scale(0.92); /* 약간 축소 */
 }
 
 /* iframe/내부 임베드 요소 스케일 및 오버플로우 처리 */
@@ -74,7 +74,7 @@ iframe[srcdoc], iframe {
 
 /* 헤더/사이드바 여백 최소화 */
 header[data-testid="stHeader"], aside[aria-label="Sidebar"] {
-    padding: 4px 8px !important;
+    padding: 6px 12px !important;
 }
 
 /* 추가 줄간격/마진 제거 */
@@ -114,8 +114,8 @@ try:
       html, body { overflow: visible !important; height: auto !important; }
       ::-webkit-scrollbar { display: none; }
       body { -ms-overflow-style: none; scrollbar-width: none; }
-      /* 내부 컨텐츠 축소 비율을 더 키움(더 많은 내용 표시) */
-      body { transform-origin: 0 0; transform: scale(0.80); }
+      /* 내부 컨텐츠는 거의 기본 크기 유지(너무 축소하지 않음) */
+      body { transform-origin: 0 0; transform: scale(0.95); }
       /* 내부 요소가 큰 경우 전체가 보이도록 최대 너비 제한 완화 */
       .container, #app { max-width: none !important; width: auto !important; }
     </style>
@@ -126,12 +126,12 @@ try:
     else:
         html_with_inline = injection_style + html_with_inline
 
-    # 부모 페이지(스트림릿)에서 iframe을 충분히 크게 보이게 하는 전역 CSS
+    # 부모 페이지(스트림릿)에서 iframe을 적당한 크기로 보이게 하는 전역 CSS
     st.markdown("""
     <style>
-    /* Streamlit이 생성한 iframe에 대해 매우 큰 최소 높이/너비 확보 */
+    /* Streamlit이 생성한 iframe에 대해 적절한 최소 높이/너비 확보 */
     iframe[srcdoc], iframe {
-        min-height: 7000px !important;  /* 크게 늘림: 필요하면 더 키우세요 */
+        min-height: 1000px !important;  /* 변경: 1000px로 축소 */
         height: auto !important;
         width: 100% !important;
         border: none !important;
@@ -141,12 +141,12 @@ try:
     </style>
     """, unsafe_allow_html=True)
 
-    # Streamlit에서 HTML 컴포넌트 실행 - height를 매우 크게 잡아 부모 페이지에서 바로 전체를 스크롤
+    # Streamlit에서 HTML 컴포넌트 실행 - height를 1000으로 설정
     components.html(
         html_with_inline,
-        height=7000,    # 변경: 매우 크게(한 화면에 더 많은 내용 표시). 필요시 9000 등으로 더 늘리세요.
-        width=2800,     # 넓이도 더 크게 설정
-        scrolling=False  # 내부 스크롤을 끄고 부모 페이지가 스크롤하게 함
+        height=1000,    # 변경: 한 화면에 보일 높이 약 1000px
+        width=1200,     # 변경: 적당한 너비
+        scrolling=False  # 부모 페이지에서 스크롤 관리
     )
     
 except FileNotFoundError as e:
