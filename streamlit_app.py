@@ -132,29 +132,51 @@ try:
     else:
         html_with_inline = injection_style + html_with_inline
 
-    # 부모 페이지(스트림릿)에서 iframe을 충분히 크게 보이게 하는 전역 CSS
-    st.markdown("""
+    # --- 변경: HTML 길이에 따라 적정 높이 계산 (초기 화면에 맞춰 과도하게 커지지 않게 함) ---
+    content_len = len(html_with_inline)
+    line_count = html_with_inline.count('\n') + content_len / 200.0
+    # 최소 900px, 최대 8000px 범위로 추정 (필요하면 범위 조정)
+    estimated_height = int(min(max(900, line_count * 20), 8000))
+
+    # 부모 페이지(스트림릿)에서 iframe과 블록의 높이/정렬을 추정값 기준으로 적용
+    st.markdown(f"""
     <style>
-    /* Streamlit이 생성한 iframe에 대해 충분한 높이/너비 확보 */
-    iframe[srcdoc], iframe {
-        min-height: 3000px !important;   /* 세로를 더 길게(기존 1600 -> 3000) */
-        height: 3000px !important;       /* 고정 세로 길이 */
-        width: 1600px !important;        /* 기존 가로 설정 유지 */
-        max-width: 100% !important;
+    /* 블록을 가로 중앙 정렬하고, 내용 기반 최소 높이를 적용 */
+    .block-container {{
+        max-width: 1600px !important;
+        padding: 0.3rem !important;
+        margin: 0 auto !important; /* 가로 중앙 정렬 */
+        min-height: {estimated_height}px !important; /* 콘텐츠 기반 최소 높이 */
+    }}
+
+    /* iframe을 중앙에 고정하고 높이를 콘텐츠 기반으로 설정 */
+    iframe[srcdoc], iframe {{
+        height: {estimated_height}px !important;
+        width: 100% !important;
+        max-width: 1600px !important;
+        display: block;
+        margin: 0 auto;
         border: none !important;
         overflow: visible !important;
-    }
-    /* 부모 페이지 글꼴·여백도 약간 더 컴팩트하게 유지 */
-    .block-container { max-width: 1600px !important; padding: 0.3rem !important; min-height: 3000px !important; } /* 세로 확장 추가 */
+    }}
+
+    /* 부모 페이지 스크롤 동작 안정화 */
+    .main > div[role="main"] {{ overflow: visible !important; display: block; }}
+
+    /* 추가: 작은 화면에서 너무 크게 늘어나지 않도록 보정 */
+    @media (max-width: 900px) {{
+        .block-container {{ padding-left: 0.5rem !important; padding-right: 0.5rem !important; }}
+        iframe[srcdoc], iframe {{ height: calc({estimated_height}px * 0.8) !important; }}
+    }}
     </style>
     """, unsafe_allow_html=True)
 
-    # Streamlit에서 HTML 컴포넌트 실행 - height/width를 충분히 크게 잡음
+    # Streamlit에서 HTML 컴포넌트 실행 - 추정 높이 사용
     components.html(
         html_with_inline,
-        height=3000,    # 변경: 한 화면에 더 많은 세로를 보이게 3000px로 설정
-        width=1600,     # 가로는 기존 값 유지
-        scrolling=False  # 내부 스크롤 끄기 -> 부모 iframe에 충분한 높이를 줌
+        height=estimated_height,    # 내용 기반 높이
+        width=1600,                 # 부모에서 max-width로 제한하므로 적당한 픽셀값 사용
+        scrolling=False
     )
     
 except FileNotFoundError as e:
