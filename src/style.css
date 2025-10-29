@@ -10,7 +10,7 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     margin: 0;
-    padding: 10px 8%;
+    padding: 5px;
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -26,7 +26,7 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    margin-top: 5px;
+    margin-top: 0;
 }
 
 /* 화면 전환 */
@@ -641,11 +641,11 @@ body {
 @media (max-width: 768px) {
     .container {
         width: 95%;
-        margin: 10px;
+        margin: 5px;
     }
     
     .screen {
-        padding: 20px;
+        padding: 10px;
     }
     
     .graph-container {
@@ -722,7 +722,7 @@ body {
 /* 모바일 환경 */
 @media screen and (max-width: 768px) {
     body {
-        padding: 10px 2%;
+        padding: 5px;
     }
     
     .container {

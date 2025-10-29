@@ -3,15 +3,11 @@ import streamlit.components.v1 as components
 import os
 import re
 
-# 페이지 설정
-import streamlit as st
-import os
-
-# 페이지 설정 - 더 넓은 레이아웃
+# 페이지 설정 - 컴팩트한 레이아웃
 st.set_page_config(
     page_title="이차함수 완전제곱식 & 그래프 변환 학습",
     page_icon="🎯",
-    layout="wide",  # 와이드 레이아웃으로 변경
+    layout="centered",  # 센터드 레이아웃으로 변경
     initial_sidebar_state="collapsed"
 )
 
@@ -36,9 +32,8 @@ st.sidebar.markdown("""
 - 인터랙티브 그래프
 """)
 
-# 메인 타이틀
+# 컴팩트한 메인 타이틀
 st.title("🎯 이차함수 완전제곱식 & 그래프 변환 학습")
-st.markdown("---")
 
 # HTML, CSS, JavaScript 파일 읽기
 try:
@@ -54,38 +49,19 @@ try:
     with open('src/script.js', 'r', encoding='utf-8') as f:
         js_content = f.read()
     
-    # CSS에서 의도치 않은 주변 여백 규칙(margin/padding)을 제거하여 원래 크기로 복원
-    # body는 0으로 초기화, container/wrapper 등 클래스의 margin/padding 규칙은 제거
-    css_sanitized = re.sub(
-        r'body\s*\{[^}]*?\}',
-        lambda m: re.sub(r'(margin|padding)\s*:[^;]+;?', '', m.group(0), flags=re.I) or 'body{margin:0;padding:0;}',
-        css_content,
-        flags=re.I|re.S
-    )
-    # .container, .wrapper, #app 등 주요 셀렉터의 margin/padding 제거
-    css_sanitized = re.sub(
-        r'(\.(?:container|wrapper|app)|#(?:container|wrapper|app))[^{]*\{[^}]*\}',
-        lambda m: re.sub(r'(margin|padding)\s*:[^;]+;?', '', m.group(0), flags=re.I),
-        css_sanitized,
-        flags=re.I|re.S
-    )
-
-    # HTML 인라인 style에 있는 margin/padding 속성도 제거
-    html_no_inline_spacing = re.sub(r'(margin|padding)\s*:\s*[^;"]+;?', '', html_content, flags=re.I)
-
     # 최종적으로 CSS/JS를 인라인으로 삽입
-    html_with_inline = html_no_inline_spacing.replace(
+    html_with_inline = html_content.replace(
         '<link rel="stylesheet" href="src/style.css">',
-        f'<style>{css_sanitized}</style>'
+        f'<style>{css_content}</style>'
     ).replace(
         '<script src="src/script.js"></script>',
         f'<script>{js_content}</script>'
     )
     
-    # Streamlit에서 HTML 컴포넌트 실행
+    # Streamlit에서 HTML 컴포넌트 실행 - 높이를 줄여서 컴팩트하게
     components.html(
         html_with_inline,
-        height=800,
+        height=500,  # 높이를 줄임
         scrolling=True
     )
     
@@ -104,11 +80,9 @@ except FileNotFoundError as e:
         for file in sorted(current_files):
             st.write(f"- {file}")
 
-# 푸터
-st.markdown("---")
+# 컴팩트한 푸터
 st.markdown("""
-<div style='text-align: center; color: #666; padding: 20px;'>
+<div style='text-align: center; color: #666; padding: 10px;'>
     <p>🎓 이차함수 학습 프로그램 v1.0</p>
-    <p>완전제곱식 변환과 그래프 평행이동을 재미있게 배워보세요!</p>
 </div>
 """, unsafe_allow_html=True)
