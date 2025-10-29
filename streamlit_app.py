@@ -137,23 +137,23 @@ try:
     <style>
     /* Streamlit이 생성한 iframe에 대해 충분한 높이/너비 확보 */
     iframe[srcdoc], iframe {
-        min-height: 1600px !important;   /* 더 크게 설정 */
-        height: 1600px !important;       /* 고정 높이로 설정 */
-        width: 1600px !important;        /* 고정 너비로 설정(필요시 100%로 변경) */
+        min-height: 3000px !important;   /* 세로를 더 길게(기존 1600 -> 3000) */
+        height: 3000px !important;       /* 고정 세로 길이 */
+        width: 1600px !important;        /* 기존 가로 설정 유지 */
         max-width: 100% !important;
         border: none !important;
         overflow: visible !important;
     }
     /* 부모 페이지 글꼴·여백도 약간 더 컴팩트하게 유지 */
-    .block-container { max-width: 1600px !important; padding: 0.3rem !important; }
+    .block-container { max-width: 1600px !important; padding: 0.3rem !important; min-height: 3000px !important; } /* 세로 확장 추가 */
     </style>
     """, unsafe_allow_html=True)
 
     # Streamlit에서 HTML 컴포넌트 실행 - height/width를 충분히 크게 잡음
     components.html(
         html_with_inline,
-        height=1600,    # 변경: 1600px로 충분히 크게
-        width=1600,     # 변경: 1600px 고정 너비 (또는 width=0로 두면 100% 사용)
+        height=3000,    # 변경: 한 화면에 더 많은 세로를 보이게 3000px로 설정
+        width=1600,     # 가로는 기존 값 유지
         scrolling=False  # 내부 스크롤 끄기 -> 부모 iframe에 충분한 높이를 줌
     )
     
