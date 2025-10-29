@@ -38,36 +38,25 @@ st.title("🎯 이차함수 완전제곱식 & 그래프 변환 학습")
 # 페이지 폭을 넓히고 여백을 줄이는 전역 CSS
 st.markdown("""
 <style>
-/* 전체 최대 너비를 거의 화면 전체로 확장 */
+/* 전체 최대 너비를 화면 전체로 더 확장 */
 .block-container {
-    padding-top: 0.25rem;
-    padding-right: 0.5rem;
-    padding-left: 0.5rem;
-    padding-bottom: 0.25rem;
-    max-width: 2200px; /* 화면을 최대한 활용 */
+    padding-top: 0.15rem;
+    padding-right: 0.25rem;
+    padding-left: 0.25rem;
+    padding-bottom: 0.15rem;
+    max-width: 3200px; /* 크게 확장 */
 }
 
-/* 기본 폰트/줄간격을 작게 해서 한 화면에 더 많은 텍스트가 보이게 함 */
+/* 폰트/줄간격을 더 작게 해서 한 화면에 더 많은 텍스트 표시 */
 html, body, .stApp, .block-container {
-    font-size: 13px !important;
-    line-height: 1.1 !important;
+    font-size: 12px !important;
+    line-height: 1.0 !important;
 }
 
-/* Streamlit 컴포넌트의 여백 최소화 */
+/* 컴포넌트 여백 최소화 */
 .element-container, .stMarkdown, .stButton, .stTextInput, .stSelectbox {
     margin: 0 !important;
-    padding: 0.15rem !important;
-}
-
-/* 헤더/사이드바 여백 축소 */
-header[data-testid="stHeader"], aside[aria-label="Sidebar"] {
-    padding: 6px 12px !important;
-}
-
-/* 버튼/입력 컨트롤을 작게 보이게 함 */
-.stButton>button, .stTextInput>div, .stSelectbox>div {
-    font-size: 12px !important;
-    padding: 4px 6px !important;
+    padding: 0.12rem !important;
 }
 
 /* 플롯/이미지 등 미디어 축소 */
@@ -75,24 +64,24 @@ img, svg, canvas {
     max-width: 100% !important;
     height: auto !important;
     transform-origin: 0 0;
-    transform: scale(0.86); /* 필요시 더 작게: 0.8 등 */
+    transform: scale(0.80); /* 더 작게 축소해서 한 화면에 더 많이 보이게 함 */
 }
 
-/* 내부 html 임베드 요소 스케일(임베드된 페이지의 글자/그림 축소) */
-iframe, .streamlit-expander {
+/* iframe/내부 임베드 요소 스케일 및 오버플로우 처리 */
+iframe[srcdoc], iframe {
     transform-origin: 0 0;
 }
 
-/* 줄 간격과 패딩을 더 줄이는 추가 선택자 */
-h1, h2, h3, p, li, label {
-    margin: 0;
-    padding: 0;
+/* 헤더/사이드바 여백 최소화 */
+header[data-testid="stHeader"], aside[aria-label="Sidebar"] {
+    padding: 4px 8px !important;
 }
 
-/* 모바일/작은 화면 보정: 너무 작아지면 최소 폰트로 제한 */
-@media (max-width: 900px) {
-    html, body, .stApp, .block-container { font-size: 12px !important; }
-}
+/* 추가 줄간격/마진 제거 */
+h1, h2, h3, p, li, label { margin: 0; padding: 0; }
+
+/* 부모 페이지가 내부 컨텐츠 전체를 스크롤하게 강제 */
+.main > div[role="main"] { overflow: visible !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -120,15 +109,15 @@ try:
     )
 
     # iframe 내부에서 스크롤을 없애고 전체 내용을 보여주기 위한 추가 스타일
-    # (body overflow visible, 스크롤바 숨김, 필요하면 내부 요소의 스케일도 조정)
     injection_style = """
     <style>
       html, body { overflow: visible !important; height: auto !important; }
-      /* 내부 스크롤바 숨기기 (웹킷 브라우저용) */
       ::-webkit-scrollbar { display: none; }
       body { -ms-overflow-style: none; scrollbar-width: none; }
-      /* 내부 컨텐츠가 너무 크면 글자/이미지 약간 축소 */
-      body { transform-origin: 0 0; transform: scale(0.95); }
+      /* 내부 컨텐츠 축소 비율을 더 키움(더 많은 내용 표시) */
+      body { transform-origin: 0 0; transform: scale(0.80); }
+      /* 내부 요소가 큰 경우 전체가 보이도록 최대 너비 제한 완화 */
+      .container, #app { max-width: none !important; width: auto !important; }
     </style>
     """
     # 위 스타일을 <head> 직후나 <body> 최상단에 삽입
@@ -140,25 +129,24 @@ try:
     # 부모 페이지(스트림릿)에서 iframe을 충분히 크게 보이게 하는 전역 CSS
     st.markdown("""
     <style>
-    /* Streamlit이 생성한 iframe(내부 srcdoc)에 대해 최소 높이/너비 확보 */
-    iframe[srcdoc] {
-        min-height: 1800px !important;  /* 필요에 따라 늘리세요 */
+    /* Streamlit이 생성한 iframe에 대해 매우 큰 최소 높이/너비 확보 */
+    iframe[srcdoc], iframe {
+        min-height: 7000px !important;  /* 크게 늘림: 필요하면 더 키우세요 */
         height: auto !important;
         width: 100% !important;
         border: none !important;
         overflow: visible !important;
     }
-    /* 부모 페이지가 내부 컨텐츠 전체를 수직으로 스크롤하도록 함 */
     .main > div[role="main"] { overflow: visible !important; }
     </style>
     """, unsafe_allow_html=True)
 
-    # Streamlit에서 HTML 컴포넌트 실행 - 높이를 크게 잡고 내부 스크롤을 끔
+    # Streamlit에서 HTML 컴포넌트 실행 - height를 매우 크게 잡아 부모 페이지에서 바로 전체를 스크롤
     components.html(
         html_with_inline,
-        height=2000,    # 더 크게 설정: 내부 내용이 많다면 2500~4000 등으로 조정
-        width=1800,
-        scrolling=False  # 내부 iframe 스크롤 끄기 -> 부모 페이지 스크롤 사용
+        height=7000,    # 변경: 매우 크게(한 화면에 더 많은 내용 표시). 필요시 9000 등으로 더 늘리세요.
+        width=2800,     # 넓이도 더 크게 설정
+        scrolling=False  # 내부 스크롤을 끄고 부모 페이지가 스크롤하게 함
     )
     
 except FileNotFoundError as e:
