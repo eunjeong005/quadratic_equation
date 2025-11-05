@@ -106,34 +106,38 @@ function rerenderMath(element) {
 // 캔버스 크기 동적 조정
 function resizeCanvas() {
     const canvas = document.getElementById('graph-canvas');
-    if (canvas) {
-        const container = canvas.parentElement;
-        const containerRect = container.getBoundingClientRect();
-        
-        // 컨테이너 기준으로 캔버스 CSS 크기 계산 (너무 크거나 작지 않게 제한)
-        const cssWidth = Math.max(300, Math.min( Math.floor(containerRect.width * 0.95), 1200 ));
-        const cssHeight = Math.max(250, Math.min( Math.floor(containerRect.height * 0.92), 800 ));
-        
-        // devicePixelRatio를 고려한 내부 픽셀 크기 설정
-        const dpr = window.devicePixelRatio || 1;
-        canvas.style.width = cssWidth + 'px';
-        canvas.style.height = cssHeight + 'px';
-        canvas.width = Math.floor(cssWidth * dpr);
-        canvas.height = Math.floor(cssHeight * dpr);
-        
-        // 컨텍스트를 CSS 픽셀 좌표계로 맞춤 (그리기에서는 cssWidth/cssHeight 사용)
-        const ctx = canvas.getContext('2d');
-        if (ctx && typeof ctx.setTransform === 'function') {
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        } else {
-            // fallback: clear and continue
-        }
-        
-        // 그래프가 그려져 있다면 다시 그리기 (CSS 픽셀 기준으로 전달)
-        if (currentEquation.a !== undefined) {
-            drawCoordinateSystem(ctx, canvas, graphTransformations.h, graphTransformations.k);
-            drawParabola(ctx, canvas, graphTransformations.h, graphTransformations.k, currentEquation.a || 1);
-        }
+    if (!canvas) return;
+
+    const container = canvas.parentElement || document.body;
+    const rect = container.getBoundingClientRect();
+
+    // CSS 크기: 부모 영역을 최대한 활용하되 최소/최대 제한
+    const cssWidth = Math.max(360, Math.min(Math.floor(rect.width * 0.96), 1200));
+    const cssHeight = Math.max(300, Math.min(Math.floor(rect.height * 0.74), 900));
+
+    // devicePixelRatio 고려
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.style.width = cssWidth + 'px';
+    canvas.style.height = cssHeight + 'px';
+    canvas.width = Math.floor(cssWidth * dpr);
+    canvas.height = Math.floor(cssHeight * dpr);
+
+    // CSS 좌표계로 그리기 (setTransform으로 보정)
+    const ctx = canvas.getContext('2d');
+    if (ctx && typeof ctx.setTransform === 'function') {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    // 캔버스 블록 요소로 중앙 정렬 보장
+    canvas.style.display = 'block';
+    canvas.style.margin = '0 auto';
+
+    // 다시 그리기
+    if (currentEquation && currentEquation.a !== undefined) {
+        const a = currentLevel === 1 ? 1 : currentEquation.a;
+        drawCoordinateSystem(ctx, canvas, graphTransformations.h, graphTransformations.k);
+        drawParabola(ctx, canvas, graphTransformations.h, graphTransformations.k, a);
     }
 }
 
@@ -1108,150 +1112,134 @@ function initializeGraph() {
 
 // 좌표계 그리기 (동적 스케일링)
 function drawCoordinateSystem(ctx, canvas, h = 0, k = 0) {
-    // CSS 픽셀 크기 사용 (ctx는 resizeCanvas에서 dpr로 transform 되어 있음)
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    
-    // 보여야 할 범위를 기반으로 스케일 계산
-    const maxAbsH = Math.abs(h);
-    const maxAbsK = Math.abs(k);
-    const maxRange = Math.max(maxAbsH + 2, maxAbsK + 2, 5); // 최소 범위 보장
-    
-    // 가로/세로 각각에서 fit되는 스케일을 구해 더 작은 쪽을 사용
-    const scaleX = (width / 2) / (maxRange + 1);
-    const scaleY = (height / 2) / (maxRange + 1);
-    const scale = Math.min(40, Math.max(10, Math.min(scaleX, scaleY))); // 최소/최대 제한
-    
+    // CSS 픽셀 크기 (clientWidth/Height는 CSS 값)
+    const width = canvas.clientWidth || (canvas.width / (window.devicePixelRatio || 1));
+    const height = canvas.clientHeight || (canvas.height / (window.devicePixelRatio || 1));
+    const centerX = Math.round(width / 2);
+    const centerY = Math.round(height / 2);
+
+    // 보이는 단위 범위 계산: h,k와 최소 범위를 반영
+    const padUnits = 1.5; // 좌우/상하 여유 (단위)
+    const wantedHalfX = Math.max(Math.abs(h) + 3, 5); // 보이고 싶은 x 절반 범위 (단위)
+    const wantedHalfY = Math.max(Math.abs(k) + 3, 5); // 보이고 싶은 y 절반 범위 (단위)
+
+    // 화면비에 맞춘 스케일 계산 (픽셀/단위)
+    const scaleX = (width / 2) / (wantedHalfX + padUnits);
+    const scaleY = (height / 2) / (wantedHalfY + padUnits);
+    const scale = Math.max(8, Math.min(60, Math.min(scaleX, scaleY))); // 안정적 범위
+
     // 배경 초기화 (CSS 픽셀 기준)
     ctx.clearRect(0, 0, width, height);
-    
-    // 격자 그리기 (CSS 픽셀 좌표 사용)
-    ctx.strokeStyle = '#f0f0f0';
+
+    // 격자
+    ctx.strokeStyle = '#eceff3';
     ctx.lineWidth = 1;
-    
-    const gridRange = Math.ceil(maxRange + 2);
-    for (let i = -gridRange; i <= gridRange; i++) {
-        // 세로선
+    const gridStepUnits = 1;
+    // draw vertical and horizontal grid lines based on units
+    const gridRangeX = Math.ceil((width / 2) / scale) + 2;
+    const gridRangeY = Math.ceil((height / 2) / scale) + 2;
+    for (let i = -gridRangeX; i <= gridRangeX; i++) {
+        const x = centerX + i * scale;
         ctx.beginPath();
-        ctx.moveTo(centerX + i * scale, 0);
-        ctx.lineTo(centerX + i * scale, height);
-        ctx.stroke();
-        
-        // 가로선
-        ctx.beginPath();
-        ctx.moveTo(0, centerY + i * scale);
-        ctx.lineTo(width, centerY + i * scale);
+        ctx.moveTo(Math.round(x) + 0.5, 0);
+        ctx.lineTo(Math.round(x) + 0.5, height);
         ctx.stroke();
     }
-    
+    for (let j = -gridRangeY; j <= gridRangeY; j++) {
+        const y = centerY + j * scale;
+        ctx.beginPath();
+        ctx.moveTo(0, Math.round(y) + 0.5);
+        ctx.lineTo(width, Math.round(y) + 0.5);
+        ctx.stroke();
+    }
+
     // 축 그리기
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
-    
     // x축
     ctx.beginPath();
-    ctx.moveTo(0, centerY);
-    ctx.lineTo(width, centerY);
+    ctx.moveTo(0, centerY + 0.5);
+    ctx.lineTo(width, centerY + 0.5);
     ctx.stroke();
-    
     // y축
     ctx.beginPath();
-    ctx.moveTo(centerX, 0);
-    ctx.lineTo(centerX, height);
+    ctx.moveTo(centerX + 0.5, 0);
+    ctx.lineTo(centerX + 0.5, height);
     ctx.stroke();
-    
-    // 축 레이블
+
+    // 눈금 레이블
     ctx.fillStyle = '#333';
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
-    
-    for (let i = -gridRange; i <= gridRange; i++) {
-        if (i !== 0) {
-            // x축 숫자
-            const xPos = centerX + i * scale;
-            if (xPos > 20 && xPos < width - 20) {
-                ctx.fillText(i.toString(), xPos, centerY + 15);
-            }
-            // y축 숫자
-            const yPos = centerY - i * scale;
-            if (yPos > 15 && yPos < height - 15) {
-                ctx.textAlign = 'right';
-                ctx.fillText(i.toString(), centerX - 8, yPos + 4);
-                ctx.textAlign = 'center';
-            }
+    for (let i = -gridRangeX; i <= gridRangeX; i++) {
+        if (i === 0) continue;
+        const xPos = centerX + i * scale;
+        if (xPos > 30 && xPos < width - 30) ctx.fillText(i.toString(), xPos, centerY + 16);
+    }
+    ctx.textAlign = 'right';
+    for (let j = -gridRangeY; j <= gridRangeY; j++) {
+        if (j === 0) continue;
+        const yPos = centerY - j * scale;
+        if (yPos > 18 && yPos < height - 18) {
+            ctx.fillText(j.toString(), centerX - 8, yPos + 4);
         }
     }
-    
-    // 반환: 계산된 스케일 (CSS 픽셀 단위)
-    return scale;
+
+    // 스케일 반환 (픽셀/단위)
+    return { scale, centerX, centerY, width, height };
 }
 
 // 포물선 그리기 (꼭짓점 표시 포함)
 function drawParabola(ctx, canvas, h, k, a = 1) {
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    
-    // 스케일은 drawCoordinateSystem과 동일 계산 방식으로 일관되게 재계산
-    const maxAbsH = Math.abs(h);
-    const maxAbsK = Math.abs(k);
-    const maxRange = Math.max(maxAbsH + 2, maxAbsK + 2, 5);
-    const scaleX = (width / 2) / (maxRange + 1);
-    const scaleY = (height / 2) / (maxRange + 1);
-    const scale = Math.min(40, Math.max(10, Math.min(scaleX, scaleY)));
-    
-    // 포물선 그리기 (CSS 픽셀 좌표)
-    ctx.strokeStyle = '#007bff';
+    // 먼저 좌표계 정보를 받아 동일한 스케일을 사용
+    const info = drawCoordinateSystem(ctx, canvas, h, k);
+    const { scale, centerX, centerY, width, height } = info;
+
+    ctx.strokeStyle = '#0b84ff';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    
-    let firstPoint = true;
-    const range = maxRange + 2;
-    for (let x = -range; x <= range; x += 0.05) {
+
+    // x 범위를 캔버스 가시 범위(단위)로 계산해서 포물선이 잘리는 것을 방지
+    const halfVisibleUnitsX = Math.ceil((width / 2) / scale) + 1;
+    const startX = -halfVisibleUnitsX + h;
+    const endX = halfVisibleUnitsX + h;
+    const step = Math.max(0.02, 0.5 / scale); // 화면 해상도에 맞춰 샘플링
+
+    let first = true;
+    for (let x = startX; x <= endX; x += step) {
         const y = a * (x - h) * (x - h) + k;
         const canvasX = centerX + x * scale;
         const canvasY = centerY - y * scale;
-        
-        if (firstPoint) {
+        if (first) {
             ctx.moveTo(canvasX, canvasY);
-            firstPoint = false;
+            first = false;
         } else {
             ctx.lineTo(canvasX, canvasY);
         }
     }
-    
     ctx.stroke();
-    
-    // 꼭짓점 표시 (CSS 픽셀)
-    const vertexX = centerX + h * scale;
-    const vertexY = centerY - k * scale;
-    
-    // 꼭짓점 점 그리기
-    ctx.fillStyle = '#dc3545';
-    ctx.beginPath();
-    ctx.arc(vertexX, vertexY, 6, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // 꼭짓점 좌표 텍스트 (가독성 배경 포함)
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    let coordText = `(${h}, ${k})`;
-    if (h % 1 !== 0) {
-        coordText = coordText.replace(h.toString(), decimalToFraction(h));
+
+    // 꼭짓점 표시: 화면 밖이면 그리지 않음
+    const vx = centerX + h * scale;
+    const vy = centerY - k * scale;
+    if (vx > -20 && vx < width + 20 && vy > -20 && vy < height + 20) {
+        ctx.fillStyle = '#dc3545';
+        ctx.beginPath();
+        ctx.arc(vx, vy, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 텍스트 보정 (캔버스 경계에 닿지 않게)
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        const coordText = `(${Number(h).toFixed(2).replace(/\.00$/, '')}, ${Number(k).toFixed(2).replace(/\.00$/, '')})`;
+        const textY = Math.max(16, vy - 12);
+        const textWidth = ctx.measureText(coordText).width;
+        const rectX = Math.min(Math.max(vx - textWidth / 2 - 4, 4), width - textWidth - 8);
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillRect(rectX, textY - 14, textWidth + 8, 18);
+        ctx.fillStyle = '#dc3545';
+        ctx.fillText(coordText, rectX + (textWidth + 8) / 2, textY);
     }
-    if (k % 1 !== 0) {
-        coordText = coordText.replace(k.toString(), decimalToFraction(k));
-    }
-    
-    const textY = vertexY - 15;
-    const textWidth = ctx.measureText(coordText).width;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.fillRect(vertexX - textWidth/2 - 3, textY - 12, textWidth + 6, 16);
-    ctx.fillStyle = '#dc3545';
-    ctx.fillText(coordText, vertexX, textY);
 }
 
 // 소수를 분수로 변환하는 함수

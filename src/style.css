@@ -383,21 +383,30 @@ body {
 }
 
 .graph-container {
-    display: grid;
-    grid-template-columns: 1fr 220px;
-    gap: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100%;
-    height: 280px;
-    margin-bottom: 3px;
+    box-sizing: border-box;
+    padding: 12px;
+}
+
+.canvas-wrapper {
+    width: 100%;
+    max-width: 1100px;
+    height: calc(70vh - 120px);
+    margin: 0 auto;
+    box-sizing: border-box;
 }
 
 #graph-canvas {
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    background: white;
+    display: block;
     width: 100%;
     height: 100%;
-    max-height: 280px;
+    max-height: 900px;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
 
 .graph-controls {
