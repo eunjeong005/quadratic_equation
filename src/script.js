@@ -110,16 +110,27 @@ function resizeCanvas() {
         const container = canvas.parentElement;
         const containerRect = container.getBoundingClientRect();
         
-        // 컨테이너 크기의 90%로 설정하되, 최대/최소 크기 제한
-        const maxSize = Math.min(containerRect.width * 0.9, containerRect.height * 0.9);
-        const size = Math.max(300, Math.min(600, maxSize));
+        // 컨테이너 기준으로 캔버스 CSS 크기 계산 (너무 크거나 작지 않게 제한)
+        const cssWidth = Math.max(300, Math.min( Math.floor(containerRect.width * 0.95), 1200 ));
+        const cssHeight = Math.max(250, Math.min( Math.floor(containerRect.height * 0.92), 800 ));
         
-        canvas.width = size;
-        canvas.height = size;
+        // devicePixelRatio를 고려한 내부 픽셀 크기 설정
+        const dpr = window.devicePixelRatio || 1;
+        canvas.style.width = cssWidth + 'px';
+        canvas.style.height = cssHeight + 'px';
+        canvas.width = Math.floor(cssWidth * dpr);
+        canvas.height = Math.floor(cssHeight * dpr);
         
-        // 그래프가 그려져 있다면 다시 그리기
+        // 컨텍스트를 CSS 픽셀 좌표계로 맞춤 (그리기에서는 cssWidth/cssHeight 사용)
+        const ctx = canvas.getContext('2d');
+        if (ctx && typeof ctx.setTransform === 'function') {
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        } else {
+            // fallback: clear and continue
+        }
+        
+        // 그래프가 그려져 있다면 다시 그리기 (CSS 픽셀 기준으로 전달)
         if (currentEquation.a !== undefined) {
-            const ctx = canvas.getContext('2d');
             drawCoordinateSystem(ctx, canvas, graphTransformations.h, graphTransformations.k);
             drawParabola(ctx, canvas, graphTransformations.h, graphTransformations.k, currentEquation.a || 1);
         }
@@ -1097,21 +1108,26 @@ function initializeGraph() {
 
 // 좌표계 그리기 (동적 스케일링)
 function drawCoordinateSystem(ctx, canvas, h = 0, k = 0) {
-    const width = canvas.width;
-    const height = canvas.height;
+    // CSS 픽셀 크기 사용 (ctx는 resizeCanvas에서 dpr로 transform 되어 있음)
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
     const centerX = width / 2;
     const centerY = height / 2;
     
-    // 꼭짓점이 보이도록 스케일 계산
+    // 보여야 할 범위를 기반으로 스케일 계산
     const maxAbsH = Math.abs(h);
     const maxAbsK = Math.abs(k);
-    const maxRange = Math.max(maxAbsH + 2, maxAbsK + 2, 5); // 최소 5단위는 보이도록
+    const maxRange = Math.max(maxAbsH + 2, maxAbsK + 2, 5); // 최소 범위 보장
     
-    const scale = Math.min(40, (Math.min(width, height) / 2) / (maxRange + 1));
+    // 가로/세로 각각에서 fit되는 스케일을 구해 더 작은 쪽을 사용
+    const scaleX = (width / 2) / (maxRange + 1);
+    const scaleY = (height / 2) / (maxRange + 1);
+    const scale = Math.min(40, Math.max(10, Math.min(scaleX, scaleY))); // 최소/최대 제한
     
+    // 배경 초기화 (CSS 픽셀 기준)
     ctx.clearRect(0, 0, width, height);
     
-    // 격자 그리기
+    // 격자 그리기 (CSS 픽셀 좌표 사용)
     ctx.strokeStyle = '#f0f0f0';
     ctx.lineWidth = 1;
     
@@ -1168,48 +1184,48 @@ function drawCoordinateSystem(ctx, canvas, h = 0, k = 0) {
         }
     }
     
-    return scale; // 스케일 값을 반환
+    // 반환: 계산된 스케일 (CSS 픽셀 단위)
+    return scale;
 }
 
 // 포물선 그리기 (꼭짓점 표시 포함)
 function drawParabola(ctx, canvas, h, k, a = 1) {
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
     const centerX = width / 2;
     const centerY = height / 2;
     
-    // 스케일 계산
+    // 스케일은 drawCoordinateSystem과 동일 계산 방식으로 일관되게 재계산
     const maxAbsH = Math.abs(h);
     const maxAbsK = Math.abs(k);
     const maxRange = Math.max(maxAbsH + 2, maxAbsK + 2, 5);
-    const scale = Math.min(40, (Math.min(width, height) / 2) / (maxRange + 1));
+    const scaleX = (width / 2) / (maxRange + 1);
+    const scaleY = (height / 2) / (maxRange + 1);
+    const scale = Math.min(40, Math.max(10, Math.min(scaleX, scaleY)));
     
-    // 포물선 그리기
+    // 포물선 그리기 (CSS 픽셀 좌표)
     ctx.strokeStyle = '#007bff';
     ctx.lineWidth = 3;
     ctx.beginPath();
     
     let firstPoint = true;
     const range = maxRange + 2;
-    for (let x = -range; x <= range; x += 0.1) {
+    for (let x = -range; x <= range; x += 0.05) {
         const y = a * (x - h) * (x - h) + k;
-        
         const canvasX = centerX + x * scale;
         const canvasY = centerY - y * scale;
         
-        if (canvasX >= 0 && canvasX <= width && canvasY >= 0 && canvasY <= height) {
-            if (firstPoint) {
-                ctx.moveTo(canvasX, canvasY);
-                firstPoint = false;
-            } else {
-                ctx.lineTo(canvasX, canvasY);
-            }
+        if (firstPoint) {
+            ctx.moveTo(canvasX, canvasY);
+            firstPoint = false;
+        } else {
+            ctx.lineTo(canvasX, canvasY);
         }
     }
     
     ctx.stroke();
     
-    // 꼭짓점 표시
+    // 꼭짓점 표시 (CSS 픽셀)
     const vertexX = centerX + h * scale;
     const vertexY = centerY - k * scale;
     
@@ -1219,32 +1235,21 @@ function drawParabola(ctx, canvas, h, k, a = 1) {
     ctx.arc(vertexX, vertexY, 6, 0, 2 * Math.PI);
     ctx.fill();
     
-    // 꼭짓점 좌표 텍스트
-    ctx.fillStyle = '#dc3545';
+    // 꼭짓점 좌표 텍스트 (가독성 배경 포함)
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
-    
     let coordText = `(${h}, ${k})`;
-    // 분수로 표시할지 결정
     if (h % 1 !== 0) {
-        const hFraction = decimalToFraction(h);
-        coordText = coordText.replace(h.toString(), hFraction);
+        coordText = coordText.replace(h.toString(), decimalToFraction(h));
     }
     if (k % 1 !== 0) {
-        const kFraction = decimalToFraction(k);
-        coordText = coordText.replace(k.toString(), kFraction);
+        coordText = coordText.replace(k.toString(), decimalToFraction(k));
     }
     
-    // 텍스트 위치 조정 (그래프 위쪽에 표시)
     const textY = vertexY - 15;
-    ctx.fillText(coordText, vertexX, textY);
-    
-    // 텍스트 배경 (가독성을 위해)
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     const textWidth = ctx.measureText(coordText).width;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.fillRect(vertexX - textWidth/2 - 3, textY - 12, textWidth + 6, 16);
-    
-    // 다시 텍스트 그리기
     ctx.fillStyle = '#dc3545';
     ctx.fillText(coordText, vertexX, textY);
 }
