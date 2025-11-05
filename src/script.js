@@ -112,8 +112,8 @@ function resizeCanvas() {
     const rect = container.getBoundingClientRect();
 
     // CSS 크기: 부모 영역을 최대한 활용하되 최소/최대 제한
-    const cssWidth = Math.max(360, Math.min(Math.floor(rect.width * 0.96), 1200));
-    const cssHeight = Math.max(300, Math.min(Math.floor(rect.height * 0.74), 900));
+    const cssWidth = Math.max(420, Math.min(Math.floor(rect.width * 0.98), 1400));
+    const cssHeight = Math.max(360, Math.min(Math.floor(rect.height * 0.8), 1000));
 
     // devicePixelRatio 고려
     const dpr = window.devicePixelRatio || 1;
@@ -133,11 +133,14 @@ function resizeCanvas() {
     canvas.style.display = 'block';
     canvas.style.margin = '0 auto';
 
-    // 다시 그리기
+    // 다시 그리기: 좌표계 먼저 그리고 정보(info)를 받아 포물선은 같은 스케일/중심으로 그림
     if (currentEquation && currentEquation.a !== undefined) {
-        const a = currentLevel === 1 ? 1 : currentEquation.a;
+        const a = (currentLevel === 1) ? 1 : currentEquation.a;
+        const info = drawCoordinateSystem(ctx, canvas, graphTransformations.h, graphTransformations.k);
+        drawParabola(ctx, canvas, graphTransformations.h, graphTransformations.k, a, info);
+    } else {
+        // 초기 빈 좌표계라도 표시
         drawCoordinateSystem(ctx, canvas, graphTransformations.h, graphTransformations.k);
-        drawParabola(ctx, canvas, graphTransformations.h, graphTransformations.k, a);
     }
 }
 
@@ -195,16 +198,19 @@ function generateRandomEquation() {
 function displayEquation() {
     const { a, b, c } = currentEquation;
     let equationText = '';
-    
+
+    // 항상 y = ... 형태로 표시
+    equationText = '$y = ';
+
     if (currentLevel === 1) {
-        // Level 1: x² + bx + c 형태
-        equationText = '$x^2';
+        // Level 1: y = x² + bx + c 형태
+        equationText += 'x^2';
         if (b > 0) {
             equationText += ` + ${b}x`;
         } else if (b < 0) {
             equationText += ` - ${Math.abs(b)}x`;
         }
-        
+
         if (c > 0) {
             equationText += ` + ${c}`;
         } else if (c < 0) {
@@ -212,8 +218,7 @@ function displayEquation() {
         }
         equationText += '$';
     } else {
-        // Level 2: ax² + bx + c 형태
-        equationText = '$';
+        // Level 2: y = ax² + bx + c 형태
         if (a === 1) {
             equationText += 'x^2';
         } else if (a === -1) {
@@ -221,13 +226,13 @@ function displayEquation() {
         } else {
             equationText += `${a}x^2`;
         }
-        
+
         if (b > 0) {
             equationText += ` + ${b}x`;
         } else if (b < 0) {
             equationText += ` - ${Math.abs(b)}x`;
         }
-        
+
         if (c > 0) {
             equationText += ` + ${c}`;
         } else if (c < 0) {
@@ -235,7 +240,7 @@ function displayEquation() {
         }
         equationText += '$';
     }
-    
+
     const equationElement = document.getElementById('original-equation');
     equationElement.innerHTML = equationText;
     rerenderMath(equationElement);
@@ -244,8 +249,8 @@ function displayEquation() {
 // 현재 방정식을 표준형 문자열로 변환 (LaTeX 형식)
 function convertToStandardForm(equation) {
     const { a, b, c } = equation;
-    let equationText = '$';
-    
+    let equationText = '$y = ';
+
     // a 계수 처리
     if (a === 1) {
         equationText += 'x^2';
@@ -254,21 +259,21 @@ function convertToStandardForm(equation) {
     } else {
         equationText += `${a}x^2`;
     }
-    
+
     // b 계수 처리
     if (b > 0) {
         equationText += ` + ${b}x`;
     } else if (b < 0) {
         equationText += ` - ${Math.abs(b)}x`;
     }
-    
+
     // c 계수 처리
     if (c > 0) {
         equationText += ` + ${c}`;
     } else if (c < 0) {
         equationText += ` - ${Math.abs(c)}`;
     }
-    
+
     equationText += '$';
     return equationText;
 }
@@ -299,7 +304,13 @@ function addNumber() {
 function updateCompletionDisplay() {
     const display = document.getElementById('completion-display');
     display.innerHTML = '';
-    
+
+    // 앞에 고정된 y = 접두 추가 (HTML 텍스트, MathJax 사용 안함)
+    const prefix = document.createElement('span');
+    prefix.className = 'equation-prefix';
+    prefix.textContent = 'y = ';
+    display.appendChild(prefix);
+
     userInput.forEach((item, index) => {
         const span = document.createElement('span');
         span.className = 'equation-part';
@@ -307,14 +318,15 @@ function updateCompletionDisplay() {
         span.onclick = () => removeBlock(index);
         display.appendChild(span);
     });
-    
+
     // 에러 표시 제거
     display.classList.remove('error');
     document.querySelectorAll('.equation-part').forEach(part => {
         part.classList.remove('error');
     });
-    
-    // MathJax 재렌더링
+
+    // MathJax 재렌더링: prefix는 일반 텍스트이므로 재렌더 대상에서 제외
+    // MathJax가 식 내부의 $...$를 처리하도록 전체 요소만 넘김
     rerenderMath(display);
 }
 
@@ -869,13 +881,13 @@ function startGraphChallenge() {
         const { a, h, k } = currentEquation;
         let targetEquation = '';
         
-        // 완전제곱식 형태로 목표 표시
+        // 완전제곱식 형태로 목표 표시 (y = (x±h)^2 ± k)
         if (h === 0) {
-            targetEquation = '$x^2$';
+            targetEquation = '$y = x^2$';
         } else if (h > 0) {
-            targetEquation = `$(x - ${h})^2$`;
+            targetEquation = `$y = (x - ${h})^2$`;
         } else {
-            targetEquation = `$(x + ${Math.abs(h)})^2$`;
+            targetEquation = `$y = (x + ${Math.abs(h)})^2$`;
         }
         
         if (k > 0) {
@@ -885,7 +897,7 @@ function startGraphChallenge() {
         }
         
         const titleElement = document.getElementById('movement-step-title');
-        titleElement.innerHTML = `🎯 $x^2$을 평행이동시켜서 ${targetEquation}을 완성해보세요!`;
+        titleElement.innerHTML = `🎯 ${targetEquation}을 완성하도록 그래프를 평행이동해보세요!`;
         rerenderMath(titleElement);
         
         // Level 1은 항상 x² (a=1)에서 시작
@@ -895,7 +907,7 @@ function startGraphChallenge() {
         drawParabola(ctx, canvas, 0, 0, 1);
         
         displayTargetEquation();
-        updateGraphFeedback('$x^2$ 그래프를 평행이동시켜서 목표 위치로 이동시켜보세요!', 'info');
+        updateGraphFeedback('$y = x^2$ 그래프를 평행이동시켜서 목표 위치로 이동시켜보세요!', 'info');
     } else {
         // Level 2: 개형 선택 단계부터 시작
         const shapeStep = document.getElementById('shape-selection-step');
@@ -972,20 +984,20 @@ function setupMultiplierStep() {
     // 원래 문제의 이차식을 기준으로 배수 질문
     const { a, b, c } = currentEquation;
     const targetCoeff = Math.abs(a);
-    
-    // 개형에 따라 질문 제목 변경
-    const questionTitle = a > 0 ? 
-        '🔢 $x^2$을 몇 배 해야 같은 개형이 나오겠나요?' : 
-        '🔢 $-x^2$을 몇 배 해야 같은 개형이 나오겠나요?';
+
+    // 개형에 따라 질문 제목 변경 (항상 y = 접두 사용)
+    const questionTitle = a > 0 ?
+        '🔢 $y = x^2$을 몇 배 해야 같은 개형이 나오겠나요?' :
+        '🔢 $y = -x^2$을 몇 배 해야 같은 개형이 나오겠나요?';
     const titleElement = document.getElementById('multiplier-question-title');
     titleElement.innerHTML = questionTitle;
     rerenderMath(titleElement);
-    
-    // baseShape는 선택된 개형에 따라 결정
+
+    // baseShape는 선택된 개형에 따라 결정 (y= 형식)
     const baseShape = a > 0 ? '$y = x^2$' : '$y = -x^2$';
-    
-    // 원래 이차식 표시
-    let originalEquation = '$';
+
+    // 원래 이차식 표시 (y = ... 형태)
+    let originalEquation = '$y = ';
     if (a === 1) {
         originalEquation += 'x^2';
     } else if (a === -1) {
@@ -993,33 +1005,33 @@ function setupMultiplierStep() {
     } else {
         originalEquation += `${a}x^2`;
     }
-    
+
     if (b > 0) {
         originalEquation += ` + ${b}x`;
     } else if (b < 0) {
         originalEquation += ` - ${Math.abs(b)}x`;
     }
-    
+
     if (c > 0) {
         originalEquation += ` + ${c}`;
     } else if (c < 0) {
         originalEquation += ` - ${Math.abs(c)}`;
     }
     originalEquation += '$';
-    
+
     const targetShape = originalEquation;
-    
+
     console.log('배수 설정:', {
         'currentEquation': currentEquation,
         'targetCoeff': targetCoeff,
         'baseShape': baseShape,
         'targetShape': targetShape
     });
-    
+
     const baseElement = document.getElementById('base-shape-display');
     baseElement.innerHTML = baseShape;
     rerenderMath(baseElement);
-    
+
     const targetElement = document.getElementById('target-shape-display');
     targetElement.innerHTML = targetShape;
     rerenderMath(targetElement);
@@ -1059,15 +1071,25 @@ function checkMultiplier() {
             
             // Level 2도 Level 1처럼 완전제곱식 형태로 제목 표시
             const { a, h, k } = currentEquation;
+            // baseGraphText에 항상 y= 형태로 표시
+            let baseGraphText = '';
+            if (a === 1) {
+                baseGraphText = '$y = x^2$';
+            } else if (a === -1) {
+                baseGraphText = '$y = -x^2$';
+            } else {
+                baseGraphText = `$y = ${a}x^2$`;
+            }
+            
             let targetEquation = '$';
             
-            // 완전제곱식 형태로 목표 표시 (Level 2는 계수 a 포함)
+            // 완전제곱식 형태로 목표 표시 (Level 2는 계수 a 포함 inside target)
             if (a === 1) {
-                targetEquation += '';
+                targetEquation = '$y = ';
             } else if (a === -1) {
-                targetEquation += '-';
+                targetEquation = '$y = -';
             } else {
-                targetEquation += `${a}`;
+                targetEquation = `$y = ${a}`;
             }
             
             if (h === 0) {
@@ -1085,7 +1107,6 @@ function checkMultiplier() {
             }
             targetEquation += '$';
             
-            const baseGraphText = a > 0 ? `${Math.abs(a)}x²` : `-${Math.abs(a)}x²`;
             document.getElementById('movement-step-title').innerHTML = `🎯 ${baseGraphText}을 평행이동시켜서 ${targetEquation}을 완성해보세요!`;
             rerenderMath(document.getElementById('movement-step-title'));
             
@@ -1119,25 +1140,27 @@ function drawCoordinateSystem(ctx, canvas, h = 0, k = 0) {
     const centerY = Math.round(height / 2);
 
     // 보이는 단위 범위 계산: h,k와 최소 범위를 반영
-    const padUnits = 1.5; // 좌우/상하 여유 (단위)
-    const wantedHalfX = Math.max(Math.abs(h) + 3, 5); // 보이고 싶은 x 절반 범위 (단위)
-    const wantedHalfY = Math.max(Math.abs(k) + 3, 5); // 보이고 싶은 y 절반 범위 (단위)
+    const padUnits = 1.5; // 단위 여유
+    const wantedHalfX = Math.max(Math.abs(h) + 3, 6); // 보이고 싶은 x 절반 범위 (단위)
+    const wantedHalfY = Math.max(Math.abs(k) + 3, 6); // 보이고 싶은 y 절반 범위 (단위)
 
     // 화면비에 맞춘 스케일 계산 (픽셀/단위)
     const scaleX = (width / 2) / (wantedHalfX + padUnits);
     const scaleY = (height / 2) / (wantedHalfY + padUnits);
-    const scale = Math.max(8, Math.min(60, Math.min(scaleX, scaleY))); // 안정적 범위
+    const scale = Math.max(6, Math.min(80, Math.min(scaleX, scaleY))); // 안전 범위
 
     // 배경 초기화 (CSS 픽셀 기준)
     ctx.clearRect(0, 0, width, height);
 
-    // 격자
+    // 배경색/격자
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
     ctx.strokeStyle = '#eceff3';
     ctx.lineWidth = 1;
-    const gridStepUnits = 1;
-    // draw vertical and horizontal grid lines based on units
     const gridRangeX = Math.ceil((width / 2) / scale) + 2;
     const gridRangeY = Math.ceil((height / 2) / scale) + 2;
+
     for (let i = -gridRangeX; i <= gridRangeX; i++) {
         const x = centerX + i * scale;
         ctx.beginPath();
@@ -1156,12 +1179,11 @@ function drawCoordinateSystem(ctx, canvas, h = 0, k = 0) {
     // 축 그리기
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
-    // x축
     ctx.beginPath();
     ctx.moveTo(0, centerY + 0.5);
     ctx.lineTo(width, centerY + 0.5);
     ctx.stroke();
-    // y축
+
     ctx.beginPath();
     ctx.moveTo(centerX + 0.5, 0);
     ctx.lineTo(centerX + 0.5, height);
@@ -1185,15 +1207,15 @@ function drawCoordinateSystem(ctx, canvas, h = 0, k = 0) {
         }
     }
 
-    // 스케일 반환 (픽셀/단위)
+    // 반환: 계산된 스케일/중심 정보 (다른 함수에서 재사용)
     return { scale, centerX, centerY, width, height };
 }
 
 // 포물선 그리기 (꼭짓점 표시 포함)
-function drawParabola(ctx, canvas, h, k, a = 1) {
-    // 먼저 좌표계 정보를 받아 동일한 스케일을 사용
-    const info = drawCoordinateSystem(ctx, canvas, h, k);
-    const { scale, centerX, centerY, width, height } = info;
+function drawParabola(ctx, canvas, h, k, a = 1, info = null) {
+    // info가 주어지면 재사용, 아니면 좌표계 그리면서 얻음
+    const coordInfo = info || drawCoordinateSystem(ctx, canvas, h, k);
+    const { scale, centerX, centerY, width, height } = coordInfo;
 
     ctx.strokeStyle = '#0b84ff';
     ctx.lineWidth = 3;
@@ -1203,7 +1225,7 @@ function drawParabola(ctx, canvas, h, k, a = 1) {
     const halfVisibleUnitsX = Math.ceil((width / 2) / scale) + 1;
     const startX = -halfVisibleUnitsX + h;
     const endX = halfVisibleUnitsX + h;
-    const step = Math.max(0.02, 0.5 / scale); // 화면 해상도에 맞춰 샘플링
+    const step = Math.max(0.02, 0.5 / scale);
 
     let first = true;
     for (let x = startX; x <= endX; x += step) {
@@ -1219,16 +1241,15 @@ function drawParabola(ctx, canvas, h, k, a = 1) {
     }
     ctx.stroke();
 
-    // 꼭짓점 표시: 화면 밖이면 그리지 않음
+    // 꼭짓점 표시 (화면 밖이면 생략)
     const vx = centerX + h * scale;
     const vy = centerY - k * scale;
-    if (vx > -20 && vx < width + 20 && vy > -20 && vy < height + 20) {
+    if (vx > -30 && vx < width + 30 && vy > -30 && vy < height + 30) {
         ctx.fillStyle = '#dc3545';
         ctx.beginPath();
         ctx.arc(vx, vy, 6, 0, Math.PI * 2);
         ctx.fill();
 
-        // 텍스트 보정 (캔버스 경계에 닿지 않게)
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
         const coordText = `(${Number(h).toFixed(2).replace(/\.00$/, '')}, ${Number(k).toFixed(2).replace(/\.00$/, '')})`;
@@ -1483,7 +1504,7 @@ function startRetryPhase() {
     const a = currentLevel === 1 ? 1 : currentEquation.a;
     drawCoordinateSystem(ctx, canvas, 0, 0);
     drawParabola(ctx, canvas, 0, 0, a);
-    updateGraphFeedback('🔄 새로운 도전! x² 그래프를 다시 목표 위치로 이동시켜보세요!', 'info');
+    updateGraphFeedback('🔄 새로운 도전! $y = x^2$ 그래프를 다시 목표 위치로 이동시켜보세요!', 'info');
 }
 
 // 그래프 피드백 업데이트
