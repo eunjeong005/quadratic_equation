@@ -872,21 +872,22 @@ function startGraphChallenge() {
         const movementStep = document.getElementById('movement-step');
         
         shapeStep.classList.add('hidden');
-        shapeStep.style.display = 'none'; // 강제로 숨기기
+        shapeStep.style.display = 'none';
         multiplierStep.classList.add('hidden');
-        multiplierStep.style.display = 'none'; // 강제로 숨기기
+        multiplierStep.style.display = 'none';
         movementStep.classList.remove('hidden');
-        movementStep.style.display = 'block'; // 강제로 보이기
+        movementStep.style.display = 'block';
         
-        // Level 1용 제목을 변경:
-        // - 기존: "$y = x^2$을 완성하도록 그래프를 평행이동해보세요!"
-        // - 변경: "$y = x^2$의 그래프를 (묶기 전 원래 형태)이 되도록 평행이동해보세요!"
+        // Level 1: 항상 기본 출발 그래프는 y = x^2 입니다.
         const { a, h, k } = currentEquation;
 
-        // 원래 이차식(묶기 전 형태) 얻기 (LaTeX 형식; convertToStandardForm 이미 '$y = ...$' 형식 반환)
+        // 묶기 전 원래 형태 (표준형) 얻기 (LaTeX 형식)
         const originalFormat = convertToStandardForm(currentEquation);
 
-        // targetEquation (완전제곱식)를 기존처럼 생성 (LaTeX)
+        // 출발 그래프(항상 y = x^2)
+        const baseGraphText = '$y = x^2$';
+
+        // 목표 완전제곱식 표시 (기존 방식 유지)
         let targetEquation = '';
         if (h === 0) {
             targetEquation = '$y = x^2$';
@@ -901,13 +902,12 @@ function startGraphChallenge() {
             targetEquation = targetEquation.slice(0, -1) + ` - ${Math.abs(k)}$`;
         }
 
+        // 제목과 안내문: "y = x^2의 그래프를 (원래형태)이 되도록 평행이동해보세요!"
         const titleElement = document.getElementById('movement-step-title');
-        // 새 문구: y=x^2의 그래프를 (원래 이차함수) 이 되게 평행이동하라는 문장
-        // originalFormat 이미 $y = ...$ 형태이므로 그대로 삽입
-        titleElement.innerHTML = `🎯 ${targetEquation}의 그래프를 ${originalFormat}이 되도록 평행이동해보세요!`;
+        titleElement.innerHTML = `🎯 ${baseGraphText}의 그래프를 ${originalFormat}이 되도록 평행이동해보세요!`;
         rerenderMath(titleElement);
-        
-        // Level 1은 항상 x² (a=1)에서 시작
+
+        // Level 1은 항상 x² (a=1)에서 시작해서 화면에 그리기
         const canvas = document.getElementById('graph-canvas');
         const ctx = canvas.getContext('2d');
         drawCoordinateSystem(ctx, canvas, 0, 0);
@@ -915,8 +915,8 @@ function startGraphChallenge() {
         
         displayTargetEquation();
 
-        // 변경된 안내문도 MathJax 표현 사용하도록 originalFormat 포함
-        updateGraphFeedback(`${targetEquation}의 그래프를 ${originalFormat}이 되도록 평행이동해보세요!`, 'info');
+        // 안내 배너(파란 영역)도 MathJax로 렌더되게 baseGraphText 포함 형태로 설정
+        updateGraphFeedback(`${baseGraphText}의 그래프를 ${originalFormat}이 되도록 평행이동해보세요!`, 'info');
     } else {
         // Level 2: 개형 선택 단계부터 시작
         const shapeStep = document.getElementById('shape-selection-step');
@@ -930,7 +930,7 @@ function startGraphChallenge() {
         movementStep.classList.add('hidden');
         movementStep.style.display = 'none'; // 강제로 숨기기
         
-        // 원래 문제의 이차식(표준형) 사용하여 설명과 표시
+        // 원래 문제의 이차함수식(표준형) 사용하여 설명과 표시
         const originalFormat = convertToStandardForm(currentEquation);
         const descElement = document.getElementById('shape-description');
         descElement.innerHTML = `🤔 ${originalFormat}과 같은 개형을 가진 그래프를 선택하세요:`;
@@ -995,9 +995,10 @@ function setupMultiplierStep() {
     const targetCoeff = Math.abs(a);
 
     // 개형에 따라 질문 제목 변경 (항상 y = 접두 사용)
+    // 변경: y축 방향으로 몇 배 해야 같은 개형이 나오는지를 묻도록 문구 수정
     const questionTitle = a > 0 ?
-        '🔢 $y = x^2$을 몇 배 해야 같은 개형이 나오겠나요?' :
-        '🔢 $y = -x^2$을 몇 배 해야 같은 개형이 나오겠나요?';
+        '🔢 $y = x^2$을 y축 방향으로 몇 배 해야 같은 개형이 나오나요?' :
+        '🔢 $y = -x^2$을 y축 방향으로 몇 배 해야 같은 개형이 나오나요?';
     const titleElement = document.getElementById('multiplier-question-title');
     titleElement.innerHTML = questionTitle;
     rerenderMath(titleElement);
@@ -1005,7 +1006,7 @@ function setupMultiplierStep() {
     // baseShape는 선택된 개형에 따라 결정 (y= 형식)
     const baseShape = a > 0 ? '$y = x^2$' : '$y = -x^2$';
 
-    // 원래 이차식 표시 (y = ... 형태)
+    // 원래 이차함수식(표준형) 표시 (y = ... 형태)
     let originalEquation = '$y = ';
     if (a === 1) {
         originalEquation += 'x^2';
@@ -1072,10 +1073,9 @@ function checkMultiplier() {
             movementStep.classList.remove('hidden');
             movementStep.style.display = 'block';
             
-            // Level 2도 Level 1처럼 "y = (base)"의 그래프를 "원래 이차식"이 되도록 평행이동하라는 문구로 변경
+            // Level 2도 Level 1처럼 "baseGraphText의 그래프를 originalFormat이 되도록 평행이동" 문구 사용
             const { a, h, k } = currentEquation;
 
-            // baseGraphText는 시작 그래프 (예: $y = x^2$, $y = -x^2$, 또는 $y = ax^2$)
             let baseGraphText = '';
             if (a === 1) {
                 baseGraphText = '$y = x^2$';
@@ -1085,41 +1085,14 @@ function checkMultiplier() {
                 baseGraphText = `$y = ${a}x^2$`;
             }
 
-            // 목표 완전제곱식 (LaTeX)
-            let targetEquation = '';
-            if (a === 1) {
-                targetEquation = '$y = ';
-            } else if (a === -1) {
-                targetEquation = '$y = -';
-            } else {
-                targetEquation = `$y = ${a}`;
-            }
-            
-            if (h === 0) {
-                targetEquation += '(x)^2';
-            } else if (h > 0) {
-                targetEquation += `(x - ${h})^2`;
-            } else {
-                targetEquation += `(x + ${Math.abs(h)})^2`;
-            }
-            
-            if (k > 0) {
-                targetEquation += ` + ${k}`;
-            } else if (k < 0) {
-                targetEquation += ` - ${Math.abs(k)}`;
-            }
-            targetEquation += '$';
-
-            // 묶기 전 원래 형태 (standard form) 가져오기
+            // 묶기 전 원래 형태 (standard form)
             const originalFormat = convertToStandardForm(currentEquation);
 
-            // 새 제목: "baseGraphText의 그래프를 originalFormat이 되도록 평행이동하라는 문구"
             document.getElementById('movement-step-title').innerHTML = `🎯 ${baseGraphText}의 그래프를 ${originalFormat}이 되도록 평행이동해보세요!`;
             rerenderMath(document.getElementById('movement-step-title'));
-            
+
             initializeGraph();
             displayTargetEquation();
-            // 안내 피드백도 동일한 문구로 표시
             updateGraphFeedback(`${baseGraphText}의 그래프를 ${originalFormat}이 되도록 평행이동해보세요!`, 'info');
         }, 1500); // 1.5초 후 다음 단계로
     } else {
@@ -1532,6 +1505,9 @@ function updateGraphFeedback(message, type) {
     feedbackElement.innerHTML = message;
     feedbackElement.className = `feedback ${type}`;
     feedbackElement.classList.remove('hidden');
+
+    // MathJax로 렌더링하여 y 등 수식 글씨체가 일관되게 보이도록 함
+    rerenderMath(feedbackElement);
 }
 
 // 화면 전환
