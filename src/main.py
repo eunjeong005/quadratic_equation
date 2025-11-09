@@ -6,8 +6,8 @@
 from quadratic_solver import QuadraticSolver
 
 def main():
-    print("=== 이차방정식 계산기 ===")
-    print("ax² + bx + c = 0 형태의 이차방정식을 풀어드립니다.")
+    print("=== 이차함수 계산기 ===")
+    print("ax² + bx + c 형태의 이차함수를 다룹니다.")
     print()
     
     try:

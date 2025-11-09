@@ -144,17 +144,17 @@ function resizeCanvas() {
     }
 }
 
-// 1. 이차방정식 도전 시작
+// 1. 이차함수 도전 시작
 function startEquationChallenge(level = 1) {
     currentLevel = level;
     generateRandomEquation();
     showScreen('equation');
-    clearUserInput(); // resetUserInput() 대신 clearUserInput() 사용
+    clearUserInput();
     wrongAttempts = 0;
     hideFeedback();
 }
 
-// 2. 랜덤 이차방정식 생성
+// 2. 랜덤 이차함수 생성
 function generateRandomEquation() {
     let a, b, c;
     
@@ -186,7 +186,7 @@ function generateRandomEquation() {
     currentEquation.h = h;
     currentEquation.k = k;
     
-    console.log(`생성된 방정식 (Level ${currentLevel}): ${a}x² + ${b}x + ${c}`);
+    console.log(`생성된 이차함수 (Level ${currentLevel}): ${a}x² + ${b}x + ${c}`);
     console.log(`완전제곱식: ${a}(x - ${h})² + ${k}`);
     console.log(`a = ${a}, h = ${h}, k = ${k}`);
     
@@ -194,7 +194,7 @@ function generateRandomEquation() {
     displayEquation();
 }
 
-// 방정식을 화면에 표시 (LaTeX 형식)
+// 방정식을(함수를) 화면에 표시 (LaTeX 형식)
 function displayEquation() {
     const { a, b, c } = currentEquation;
     let equationText = '';
@@ -242,6 +242,7 @@ function displayEquation() {
     }
 
     const equationElement = document.getElementById('original-equation');
+    // 이전 텍스트가 '방정식'으로 되어있는 요소의 기본 텍스트도 변경 가능
     equationElement.innerHTML = equationText;
     rerenderMath(equationElement);
 }
@@ -305,10 +306,11 @@ function updateCompletionDisplay() {
     const display = document.getElementById('completion-display');
     display.innerHTML = '';
 
-    // 앞에 고정된 y = 접두 추가 (HTML 텍스트, MathJax 사용 안함)
+    // 앞에 고정된 y = 접두 추가 (MathJax로 렌더링해서 y 글씨체와 통일)
     const prefix = document.createElement('span');
     prefix.className = 'equation-prefix';
-    prefix.textContent = 'y = ';
+    // 기존에는 일반 텍스트 'y = '였으나, y 글씨체를 함수에 쓰는 글씨체와 통일하기 위해 MathJax 표현으로 변경
+    prefix.innerHTML = '$y = $';
     display.appendChild(prefix);
 
     userInput.forEach((item, index) => {
@@ -325,8 +327,7 @@ function updateCompletionDisplay() {
         part.classList.remove('error');
     });
 
-    // MathJax 재렌더링: prefix는 일반 텍스트이므로 재렌더 대상에서 제외
-    // MathJax가 식 내부의 $...$를 처리하도록 전체 요소만 넘김
+    // MathJax 재렌더링: prefix도 이제 MathJax 포함이므로 전체 요소를 재렌더링
     rerenderMath(display);
 }
 
@@ -877,11 +878,16 @@ function startGraphChallenge() {
         movementStep.classList.remove('hidden');
         movementStep.style.display = 'block'; // 강제로 보이기
         
-        // Level 1용 특별한 제목 - x²에서 시작해서 목표 완전제곱식 만들기
+        // Level 1용 제목을 변경:
+        // - 기존: "$y = x^2$을 완성하도록 그래프를 평행이동해보세요!"
+        // - 변경: "$y = x^2$의 그래프를 (묶기 전 원래 형태)이 되도록 평행이동해보세요!"
         const { a, h, k } = currentEquation;
+
+        // 원래 이차식(묶기 전 형태) 얻기 (LaTeX 형식; convertToStandardForm 이미 '$y = ...$' 형식 반환)
+        const originalFormat = convertToStandardForm(currentEquation);
+
+        // targetEquation (완전제곱식)를 기존처럼 생성 (LaTeX)
         let targetEquation = '';
-        
-        // 완전제곱식 형태로 목표 표시 (y = (x±h)^2 ± k)
         if (h === 0) {
             targetEquation = '$y = x^2$';
         } else if (h > 0) {
@@ -889,15 +895,16 @@ function startGraphChallenge() {
         } else {
             targetEquation = `$y = (x + ${Math.abs(h)})^2$`;
         }
-        
         if (k > 0) {
             targetEquation = targetEquation.slice(0, -1) + ` + ${k}$`;
         } else if (k < 0) {
             targetEquation = targetEquation.slice(0, -1) + ` - ${Math.abs(k)}$`;
         }
-        
+
         const titleElement = document.getElementById('movement-step-title');
-        titleElement.innerHTML = `🎯 ${targetEquation}을 완성하도록 그래프를 평행이동해보세요!`;
+        // 새 문구: y=x^2의 그래프를 (원래 이차함수) 이 되게 평행이동하라는 문장
+        // originalFormat 이미 $y = ...$ 형태이므로 그대로 삽입
+        titleElement.innerHTML = `🎯 ${targetEquation}의 그래프를 ${originalFormat}이 되도록 평행이동해보세요!`;
         rerenderMath(titleElement);
         
         // Level 1은 항상 x² (a=1)에서 시작
@@ -907,7 +914,9 @@ function startGraphChallenge() {
         drawParabola(ctx, canvas, 0, 0, 1);
         
         displayTargetEquation();
-        updateGraphFeedback('$y = x^2$ 그래프를 평행이동시켜서 목표 위치로 이동시켜보세요!', 'info');
+
+        // 변경된 안내문도 MathJax 표현 사용하도록 originalFormat 포함
+        updateGraphFeedback(`${targetEquation}의 그래프를 ${originalFormat}이 되도록 평행이동해보세요!`, 'info');
     } else {
         // Level 2: 개형 선택 단계부터 시작
         const shapeStep = document.getElementById('shape-selection-step');
@@ -921,7 +930,7 @@ function startGraphChallenge() {
         movementStep.classList.add('hidden');
         movementStep.style.display = 'none'; // 강제로 숨기기
         
-        // 원래 이차식을 사용하여 설명과 표시
+        // 원래 문제의 이차식(표준형) 사용하여 설명과 표시
         const originalFormat = convertToStandardForm(currentEquation);
         const descElement = document.getElementById('shape-description');
         descElement.innerHTML = `🤔 ${originalFormat}과 같은 개형을 가진 그래프를 선택하세요:`;
@@ -1050,12 +1059,6 @@ function checkMultiplier() {
     // x²에서 ax²로 만들기 위한 정답 계산
     const correctMultiplier = Math.abs(currentEquation.a);
     
-    console.log('배수 확인:', {
-        '입력값': value,
-        '정답': correctMultiplier,
-        'currentEquation.a': currentEquation.a
-    });
-    
     if (Math.abs(value - correctMultiplier) < 0.001) {
         // 맞으면 성공 메시지 표시 후 평행이동 단계로
         showSuccessMessage('🎉 맞습니다! 이제 그래프를 평행이동시켜보세요!');
@@ -1069,9 +1072,10 @@ function checkMultiplier() {
             movementStep.classList.remove('hidden');
             movementStep.style.display = 'block';
             
-            // Level 2도 Level 1처럼 완전제곱식 형태로 제목 표시
+            // Level 2도 Level 1처럼 "y = (base)"의 그래프를 "원래 이차식"이 되도록 평행이동하라는 문구로 변경
             const { a, h, k } = currentEquation;
-            // baseGraphText에 항상 y= 형태로 표시
+
+            // baseGraphText는 시작 그래프 (예: $y = x^2$, $y = -x^2$, 또는 $y = ax^2$)
             let baseGraphText = '';
             if (a === 1) {
                 baseGraphText = '$y = x^2$';
@@ -1080,10 +1084,9 @@ function checkMultiplier() {
             } else {
                 baseGraphText = `$y = ${a}x^2$`;
             }
-            
-            let targetEquation = '$';
-            
-            // 완전제곱식 형태로 목표 표시 (Level 2는 계수 a 포함 inside target)
+
+            // 목표 완전제곱식 (LaTeX)
+            let targetEquation = '';
             if (a === 1) {
                 targetEquation = '$y = ';
             } else if (a === -1) {
@@ -1106,13 +1109,18 @@ function checkMultiplier() {
                 targetEquation += ` - ${Math.abs(k)}`;
             }
             targetEquation += '$';
-            
-            document.getElementById('movement-step-title').innerHTML = `🎯 ${baseGraphText}을 평행이동시켜서 ${targetEquation}을 완성해보세요!`;
+
+            // 묶기 전 원래 형태 (standard form) 가져오기
+            const originalFormat = convertToStandardForm(currentEquation);
+
+            // 새 제목: "baseGraphText의 그래프를 originalFormat이 되도록 평행이동하라는 문구"
+            document.getElementById('movement-step-title').innerHTML = `🎯 ${baseGraphText}의 그래프를 ${originalFormat}이 되도록 평행이동해보세요!`;
             rerenderMath(document.getElementById('movement-step-title'));
             
             initializeGraph();
             displayTargetEquation();
-            updateGraphFeedback('이제 그래프를 목표 위치로 이동시켜보세요!', 'info');
+            // 안내 피드백도 동일한 문구로 표시
+            updateGraphFeedback(`${baseGraphText}의 그래프를 ${originalFormat}이 되도록 평행이동해보세요!`, 'info');
         }, 1500); // 1.5초 후 다음 단계로
     } else {
         alert('다시 시도해보세요!');

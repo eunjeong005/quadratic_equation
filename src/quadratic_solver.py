@@ -1,6 +1,6 @@
 """
-이차방정식 해결 프로그램
-ax² + bx + c = 0 형태의 이차방정식을 풀어주는 프로그램
+이차함수(이차식) 관련 도우미
+ax² + bx + c 형태의 이차함수(또는 이차식)를 다루는 보조 모듈
 """
 
 import math
@@ -16,7 +16,7 @@ class QuadraticSolver:
             c (float): 상수항
         """
         if a == 0:
-            raise ValueError("a는 0이 될 수 없습니다. 이차방정식이 아닙니다.")
+            raise ValueError("a는 0이 될 수 없습니다. 이차함수가 아닙니다.")
         
         self.a = a
         self.b = b
